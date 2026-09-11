@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calisthenie-maison-v1';
+const CACHE_NAME = 'calisthenie-maison-v2';
 const ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -15,8 +15,16 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Network-first: always fetch the live page when online (so updates show up
+// immediately), only falling back to the cached copy when offline.
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
