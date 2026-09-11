@@ -11,6 +11,34 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root{
+    --bg:#f7f5f1;
+    --bg2:#efece4;
+    --card:#ffffff;
+    --card2:#f2efe8;
+    --border:#e1ddd1;
+    --text:#1c1a17;
+    --muted:#6c675c;
+    --bg-vignette:#eef1fb;
+    --accent:#ff7a45;
+    --accent2:#22c3a6;
+    --danger:#ff5566;
+    --radius:16px;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1115;
+      --bg2:#161a22;
+      --card:#1c212b;
+      --card2:#232a37;
+      --border:#2b3242;
+      --text:#eef1f6;
+      --muted:#8b93a7;
+      --bg-vignette:#1a2130;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
     --bg:#0f1115;
     --bg2:#161a22;
     --card:#1c212b;
@@ -18,10 +46,8 @@
     --border:#2b3242;
     --text:#eef1f6;
     --muted:#8b93a7;
-    --accent:#ff7a45;
-    --accent2:#22c3a6;
-    --danger:#ff5566;
-    --radius:16px;
+    --bg-vignette:#1a2130;
+    color-scheme:dark;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -29,7 +55,7 @@
     background:
       radial-gradient(900px 520px at 108% 115%, rgba(255,122,69,.10), transparent 60%),
       radial-gradient(700px 480px at -8% -8%, rgba(34,195,166,.09), transparent 60%),
-      radial-gradient(1200px 800px at 20% -10%, #1a2130 0%, var(--bg) 55%);
+      radial-gradient(1200px 800px at 20% -10%, var(--bg-vignette) 0%, var(--bg) 55%);
     background-color:var(--bg);
     background-attachment:fixed;
     color:var(--text);
@@ -408,8 +434,22 @@ function loadSessions(){
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
 function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
 function saveCustomExos(a){ try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
-function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true}; } }
+function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, theme:'system'}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, theme:'system'}; } }
 function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
+
+/* ---------------- THEME ---------------- */
+function applyTheme(){
+  if(settings.theme === 'light' || settings.theme === 'dark'){
+    document.documentElement.setAttribute('data-theme', settings.theme);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if(settings.theme === 'system') applyTheme();
+  });
+}
 function loadEquipment(){ try{ return Object.assign({pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}, JSON.parse(localStorage.getItem(LS_EQUIPMENT)||'{}')); }catch(e){ return {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}; } }
 function saveEquipment(eq){ try{ localStorage.setItem(LS_EQUIPMENT, JSON.stringify(eq)); }catch(e){} }
 function loadLogs(){ try{ return JSON.parse(localStorage.getItem(LS_LOGS)||'[]'); }catch(e){ return []; } }
@@ -558,6 +598,9 @@ function renderHome(){
     <div class="row wrap">
       <button class="btn sm ${settings.sound?'accent':'ghost'}" data-toggle="sound">🔊 Son ${settings.sound?'ON':'OFF'}</button>
       <button class="btn sm ${settings.vibrate?'accent':'ghost'}" data-toggle="vibrate">📳 Vibration ${settings.vibrate?'ON':'OFF'}</button>
+      <button class="btn sm ${settings.theme==='light'?'accent':'ghost'}" data-set-theme="light">☀️ Clair</button>
+      <button class="btn sm ${settings.theme==='dark'?'accent':'ghost'}" data-set-theme="dark">🌙 Sombre</button>
+      <button class="btn sm ${settings.theme==='system'?'accent':'ghost'}" data-set-theme="system">⚙️ Système</button>
       <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
       <button class="btn sm ghost" data-action="openExport">📤 Export</button>
       <button class="btn sm ghost" data-action="openImport">📥 Import</button>
@@ -1165,6 +1208,13 @@ function attachEvents(){
     render();
   });
 
+  app.querySelectorAll('[data-set-theme]').forEach(b=>b.onclick = ()=>{
+    settings.theme = b.getAttribute('data-set-theme');
+    saveSettings(settings);
+    applyTheme();
+    render();
+  });
+
   app.querySelectorAll('[data-start-session]').forEach(b=>b.onclick = ()=>startSession(parseInt(b.getAttribute('data-start-session'))));
   app.querySelectorAll('[data-del-session]').forEach(b=>b.onclick = ()=>{
     const i = parseInt(b.getAttribute('data-del-session'));
@@ -1244,7 +1294,7 @@ function attachEvents(){
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
       if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
       if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
-      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true}, data.settings); saveSettings(settings); }
+      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,theme:'system'}, data.settings); saveSettings(settings); applyTheme(); }
       if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
       if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
       sheet=null; view='home'; toast('Données importées ✓'); render();
@@ -1342,6 +1392,7 @@ function attachEvents(){
   if(overlay) overlay.onclick = (e)=>{ if(e.target===overlay){ sheet=null; render(); } };
 }
 
+applyTheme();
 render();
 })();
 </script>
