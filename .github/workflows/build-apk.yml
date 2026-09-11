@@ -5,6 +5,9 @@ on:
     branches: [main, "claude/**"]
   workflow_dispatch: {}
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,8 +39,22 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk calisthenie-maison-debug.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: calisthenie-maison-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: calisthenie-maison-debug.apk
+
+      - name: Publish APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: "Dernier APK (build automatique)"
+          body: |
+            APK de débogage généré automatiquement depuis le commit ${{ github.sha }}.
+            Installe-le en autorisant les "sources inconnues" sur Android.
+          make_latest: true
+          files: calisthenie-maison-debug.apk
