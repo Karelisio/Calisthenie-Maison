@@ -29,24 +29,46 @@ public class MaterialColorsPlugin extends Plugin {
             return;
         }
 
+        boolean dark = !"light".equals(call.getString("scheme", "dark"));
+
         try {
             JSObject ret = new JSObject();
             ret.put("available", true);
-            ret.put("accent", hex("system_accent1_200"));
-            ret.put("onAccent", hex("system_accent1_800"));
-            ret.put("accentContainer", hex("system_accent1_700"));
-            ret.put("onAccentContainer", hex("system_accent1_100"));
-            ret.put("accent2", hex("system_accent3_200"));
-            ret.put("onAccent2", hex("system_accent3_800"));
-            ret.put("accent2Container", hex("system_accent3_700"));
-            ret.put("onAccent2Container", hex("system_accent3_100"));
-            ret.put("bg", hex("system_neutral1_900"));
-            ret.put("bg2", hex("system_neutral1_800"));
-            ret.put("card", hex("system_neutral1_800"));
-            ret.put("card2", hex("system_neutral1_700"));
-            ret.put("border", hex("system_neutral2_700"));
-            ret.put("text", hex("system_neutral1_100"));
-            ret.put("muted", hex("system_neutral2_200"));
+            if (dark) {
+                // M3 dark scheme tones: primary/tertiary=80, on-*=20, containers=30/90
+                ret.put("accent", hex("system_accent1_200"));
+                ret.put("onAccent", hex("system_accent1_800"));
+                ret.put("accentContainer", hex("system_accent1_700"));
+                ret.put("onAccentContainer", hex("system_accent1_100"));
+                ret.put("accent2", hex("system_accent3_200"));
+                ret.put("onAccent2", hex("system_accent3_800"));
+                ret.put("accent2Container", hex("system_accent3_700"));
+                ret.put("onAccent2Container", hex("system_accent3_100"));
+                ret.put("bg", hex("system_neutral1_900"));
+                ret.put("bg2", hex("system_neutral1_800"));
+                ret.put("card", hex("system_neutral1_800"));
+                ret.put("card2", hex("system_neutral1_700"));
+                ret.put("border", hex("system_neutral2_700"));
+                ret.put("text", hex("system_neutral1_100"));
+                ret.put("muted", hex("system_neutral2_200"));
+            } else {
+                // M3 light scheme tones: primary/tertiary=40, on-*=100, containers=90/10
+                ret.put("accent", hex("system_accent1_600"));
+                ret.put("onAccent", hex("system_accent1_0"));
+                ret.put("accentContainer", hex("system_accent1_100"));
+                ret.put("onAccentContainer", hex("system_accent1_900"));
+                ret.put("accent2", hex("system_accent3_600"));
+                ret.put("onAccent2", hex("system_accent3_0"));
+                ret.put("accent2Container", hex("system_accent3_100"));
+                ret.put("onAccent2Container", hex("system_accent3_900"));
+                ret.put("bg", hex("system_neutral1_10"));
+                ret.put("bg2", hex("system_neutral1_50"));
+                ret.put("card", hex("system_neutral1_50"));
+                ret.put("card2", hex("system_neutral1_100"));
+                ret.put("border", hex("system_neutral2_200"));
+                ret.put("text", hex("system_neutral1_900"));
+                ret.put("muted", hex("system_neutral2_700"));
+            }
             call.resolve(ret);
         } catch (Exception e) {
             call.resolve(unavailable);

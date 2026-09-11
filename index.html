@@ -527,10 +527,10 @@ function applyDynamicColors(c){
   Object.keys(map).forEach(k=>{ if(c[k]) root.setProperty(map[k], c[k]); });
 }
 function initDynamicTheme(){
-  if(!isNativeApp()) return;
-  callNativePlugin('MaterialColors', 'getDynamicColors').then(res=>{
-    if(res && res.available) applyDynamicColors(res);
-  }).catch(()=>{});
+  if(!isNativeApp()){ clearDynamicColors(); return; }
+  callNativePlugin('MaterialColors', 'getDynamicColors', { scheme: resolvedTheme() }).then(res=>{
+    if(res && res.available) applyDynamicColors(res); else clearDynamicColors();
+  }).catch(()=>{ clearDynamicColors(); });
 }
 function clearDynamicColors(){
   const root = document.documentElement.style;
@@ -551,11 +551,7 @@ function applyTheme(){
   } else {
     document.documentElement.removeAttribute('data-theme');
   }
-  if(resolvedTheme() === 'dark'){
-    initDynamicTheme();
-  } else {
-    clearDynamicColors();
-  }
+  initDynamicTheme();
 }
 if(window.matchMedia){
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
