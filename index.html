@@ -599,7 +599,7 @@ function renderHome(){
     <div class="row wrap">
       <button class="btn sm ${settings.sound?'accent':'ghost'}" data-toggle="sound">🔊 Son ${settings.sound?'ON':'OFF'}</button>
       <button class="btn sm ${settings.vibrate?'accent':'ghost'}" data-toggle="vibrate">📳 Vibration ${settings.vibrate?'ON':'OFF'}</button>
-      <button class="btn sm ${settings.theme!=='system'?'accent':'ghost'}" data-action="cycleTheme">${THEME_LABELS[settings.theme]}</button>
+      <button class="btn sm ${settings.theme!=='system'?'accent':'ghost'}" style="min-width:112px;" data-action="cycleTheme">${THEME_LABELS[settings.theme]}</button>
       <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
       <button class="btn sm ghost" data-action="openExport">📤 Export</button>
       <button class="btn sm ghost" data-action="openImport">📥 Import</button>
