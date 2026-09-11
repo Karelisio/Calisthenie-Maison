@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#11150e">
+<link rel="apple-touch-icon" href="icon-192.png"><title>Calisthénie Maison</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap">
+<style>
+  :root{
+    --bg:#11150e;
+    --bg2:#161b11;
+    --card:#1a2015;
+    --card2:#212a19;
+    --border:#2c3524;
+    --text:#eef1e7;
+    --muted:#8d9682;
+    --accent:#ff5a2e;
+    --accent-soft:rgba(255,90,46,.16);
+    --accent2:#22d6ac;
+    --accent2-soft:rgba(34,214,172,.16);
+    --danger:#ff5566;
+    --radius:16px;
+    --font-display:'Oswald','Arial Narrow',sans-serif;
+    --font-body:'Work Sans',ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --font-mono:'Space Mono',ui-monospace,'SFMono-Regular',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:
+      radial-gradient(900px 520px at 108% 115%, rgba(255,90,46,.10), transparent 60%),
+      radial-gradient(700px 480px at -8% -8%, rgba(34,214,172,.09), transparent 60%),
+      radial-gradient(1200px 800px at 20% -10%, #1c2415 0%, var(--bg) 55%);
+    background-color:var(--bg);
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{max-width:640px;margin:0 auto;padding:20px 16px 100px;}
+  h1,h2,h3{margin:0 0 4px;font-family:var(--font-display);font-weight:600;text-wrap:balance;}
+  h1{font-size:23px;letter-spacing:.2px;}
+  h2{font-size:19px;letter-spacing:.2px;}
+  p{margin:4px 0;color:var(--muted);font-size:14px;}
+  .row{display:flex;align-items:center;gap:10px;}
+  .between{justify-content:space-between;}
+  .wrap{flex-wrap:wrap;}
+  .header{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg, var(--bg) 70%, transparent);
+    padding:16px 16px 8px;margin:-20px -16px 16px;
+    backdrop-filter:blur(6px);
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .logo{
+    width:38px;height:38px;border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),#ff8a5c);
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+    box-shadow:0 4px 14px var(--accent-soft);
+  }
+  nav.tabs{display:flex;gap:6px;margin-top:14px;}
+  nav.tabs button{
+    flex:1;background:var(--card);border:1px solid var(--border);color:var(--muted);
+    padding:10px 4px;border-radius:12px;font-size:12px;font-weight:600;cursor:pointer;
+    font-family:var(--font-body);white-space:nowrap;
+  }
+  nav.tabs button.active{background:linear-gradient(135deg,var(--accent),#ff9a6a);color:#210f06;border-color:transparent;box-shadow:0 8px 20px -10px var(--accent-soft), 0 1px 0 rgba(255,255,255,.3) inset;}
+
+  .card{
+    position:relative;isolation:isolate;overflow:hidden;
+    background:linear-gradient(160deg, var(--card2) 0%, var(--card) 55%);
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;margin-bottom:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 14px 30px -20px rgba(0,0,0,.7);
+  }
+  .card::before{
+    content:'';position:absolute;inset:0;z-index:-1;
+    background:linear-gradient(180deg, rgba(255,255,255,.05), transparent 50%);
+    pointer-events:none;
+  }
+  .card.tight{padding:12px 14px;}
+
+  button{font-family:inherit;}
+  .btn{
+    position:relative;overflow:hidden;isolation:isolate;
+    border:none;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:600;
+    cursor:pointer;color:#fff;background:var(--card2);border:1px solid var(--border);
+    font-family:var(--font-body);
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+    transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  .btn::before{
+    content:'';position:absolute;inset:0;z-index:-1;
+    background:linear-gradient(180deg, rgba(255,255,255,.22), transparent 55%);
+    opacity:0;transition:opacity .15s ease;pointer-events:none;
+  }
+  .btn.primary::before, .btn.accent::before{opacity:1;}
+  .btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.05);}
+  .btn:active:not(:disabled){transform:translateY(0);filter:brightness(.97);}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),#ff9a6a);color:#210f06;border:none;box-shadow:0 10px 24px -12px var(--accent-soft);}
+  .btn.accent{background:linear-gradient(135deg,var(--accent2),#66e8cc);color:#04241d;border:none;box-shadow:0 10px 24px -12px var(--accent2-soft);}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn.danger{background:rgba(255,85,102,.12);color:var(--danger);border:1px solid rgba(255,85,102,.3);}
+  .btn.block{width:100%;}
+  .btn.sm{padding:8px 10px;font-size:12px;border-radius:10px;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn:focus-visible, .icon-btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:10px;background:linear-gradient(160deg, var(--card2), var(--card));border:1px solid var(--border);
+    color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;
+    box-shadow:0 1px 0 rgba(255,255,255,.07) inset;transition:transform .15s ease, filter .15s ease;
+  }
+  .icon-btn:hover{transform:translateY(-1px);filter:brightness(1.1);}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(160deg, var(--card2), var(--card));border:1px solid var(--border);
+    padding:4px 10px;border-radius:999px;font-size:12px;color:var(--muted);font-family:var(--font-mono);font-variant-numeric:tabular-nums;
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset;}
+
+  input[type=text], input[type=number], select{
+    width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);
+    padding:10px 12px;border-radius:10px;font-size:14px;font-family:var(--font-body);
+  }
+  label.field{display:block;margin-bottom:10px;}
+  label.field span{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;}
+
+  .exo-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:linear-gradient(160deg, var(--card2), var(--bg2));border:1px solid var(--border);margin-bottom:8px;box-shadow:0 1px 0 rgba(255,255,255,.05) inset;}
+  .exo-item .emoji{font-size:22px;width:34px;text-align:center;}
+  .exo-item .meta{flex:1;min-width:0;}
+  .exo-item .meta b{display:block;font-size:14px;font-weight:600;}
+  .exo-item .meta small{color:var(--muted);}
+  .stepper{display:flex;align-items:center;gap:6px;}
+  .stepper button{width:26px;height:26px;border-radius:8px;background:var(--card2);border:1px solid var(--border);color:var(--text);cursor:pointer;}
+  .stepper span{min-width:26px;text-align:center;font-size:13px;font-weight:700;font-family:var(--font-mono);}
+
+  .empty{text-align:center;padding:40px 10px;color:var(--muted);}
+  .empty .big{font-size:40px;margin-bottom:8px;}
+
+  /* Player */
+  .player{text-align:center;}
+  .progress-outer{height:6px;background:var(--card2);border-radius:999px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 0 rgba(255,255,255,.05) inset;}
+  .progress-inner{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s;box-shadow:0 0 12px rgba(255,90,46,.5);}
+  .phase-tag{display:inline-block;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:10px;font-family:var(--font-display);text-transform:uppercase;}
+  .phase-tag.work{background:linear-gradient(160deg, var(--accent-soft), transparent);color:var(--accent);box-shadow:0 0 18px -6px rgba(255,90,46,.55), 0 0 0 1px rgba(255,90,46,.2) inset;}
+  .phase-tag.rest{background:linear-gradient(160deg, var(--accent2-soft), transparent);color:var(--accent2);box-shadow:0 0 18px -6px rgba(34,214,172,.55), 0 0 0 1px rgba(34,214,172,.2) inset;}
+  .phase-tag.done{background:rgba(255,255,255,.1);color:var(--text);}
+  .exo-name{font-size:26px;font-weight:600;margin:6px 0 2px;font-family:var(--font-display);letter-spacing:.3px;}
+  .set-count{color:var(--muted);font-size:14px;margin-bottom:18px;font-family:var(--font-mono);}
+  .big-emoji{font-size:56px;margin:6px 0;}
+  .timer{font-size:72px;font-weight:700;font-variant-numeric:tabular-nums;margin:6px 0 14px;letter-spacing:1px;font-family:var(--font-mono);}
+  .timer.glow-work{text-shadow:0 0 34px rgba(255,90,46,.4);}
+  .timer.glow-rest{text-shadow:0 0 34px rgba(34,214,172,.4);}
+  .reps-target{font-size:56px;font-weight:700;margin:6px 0 14px;font-family:var(--font-mono);color:var(--accent);text-shadow:0 0 30px rgba(255,90,46,.3);}
+  .reps-target span{font-size:20px;color:var(--muted);font-weight:400;font-family:var(--font-body);}
+  .controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
+  .controls .btn{min-width:90px;}
+  .rest-adjust{display:flex;justify-content:center;gap:10px;margin:10px 0;}
+  .next-preview{margin-top:18px;color:var(--muted);font-size:13px;}
+  .next-preview b{color:var(--text);font-weight:600;}
+
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+    background:var(--card2);border:1px solid var(--border);padding:10px 16px;border-radius:12px;font-size:13px;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:100;}
+  .sheet{background:linear-gradient(180deg, var(--card2), var(--bg2) 40%);border:1px solid var(--border);border-top:1px solid rgba(255,255,255,.08);border-radius:20px 20px 0 0;padding:18px 16px 26px;width:100%;max-width:640px;max-height:85vh;overflow-y:auto;box-shadow:0 -20px 50px -20px rgba(0,0,0,.6);}
+  .sheet h3{margin-bottom:14px;font-family:var(--font-display);}
+  .cat-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:16px 0 8px;font-family:var(--font-display);}
+  .lib-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;cursor:pointer;}
+  .lib-item:hover{background:var(--card2);}
+  .lib-item .emoji{font-size:22px;width:32px;text-align:center;}
+  .lib-item b{font-size:14px;display:block;font-weight:600;}
+  .lib-item small{color:var(--muted);}
+
+  .tips-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;}
+  .tips-list li{padding-left:24px;position:relative;font-size:14px;line-height:1.55;color:var(--text);}
+  .tips-list li:before{content:'✓';position:absolute;left:0;top:0;color:var(--accent2);font-weight:700;font-family:var(--font-mono);}
+  .tips-btn{display:inline-flex;align-items:center;gap:6px;background:var(--accent2-soft);color:var(--accent2);border:1px solid transparent;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);margin-bottom:16px;}
+</style>
+</head>
+<body>
+
+
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- DATA ---------------- */
+const EXO_LIB = [
+ {id:'pushup', name:'Pompes', cat:'Haut du corps – Push', icon:'💪', type:'reps', sets:3, val:12, rest:60, tips:[
+   "Aligne tête, bassin et talons en une ligne droite, gainage abdominal actif.",
+   "Coudes à environ 45° du buste (pas écartés à 90°) pour protéger les épaules.",
+   "Descends jusqu'à effleurer le sol avec la poitrine, remonte sans bloquer les coudes en extension."]},
+ {id:'pushup_diamond', name:'Pompes diamant', cat:'Haut du corps – Push', icon:'💎', type:'reps', sets:3, val:8, rest:60, tips:[
+   "Mains jointes sous le sternum, pouces et index qui se touchent.",
+   "Coudes proches du corps, descente lente et contrôlée.",
+   "Sollicite fortement les poignets : arrête si tu sens une douleur à cet endroit."]},
+ {id:'pushup_incline', name:'Pompes mains surélevées', cat:'Haut du corps – Push', icon:'🔼', type:'reps', sets:3, val:15, rest:45, tips:[
+   "Mains posées sur un support stable (table, marche, canapé) plus haut que les pieds.",
+   "Plus l'appui est haut, plus l'exercice est facile — idéal pour progresser en douceur.",
+   "Garde le corps gainé en ligne droite, sans casser les hanches vers le bas."]},
+ {id:'pike_pushup', name:'Pompes piquées (épaules)', cat:'Haut du corps – Push', icon:'🔺', type:'reps', sets:3, val:8, rest:60, tips:[
+   "Position en V inversé, hanches hautes, mains et pieds au sol.",
+   "Plie les coudes vers l'arrière pour amener le sommet du crâne entre les mains.",
+   "Regarde vers tes pieds plutôt que devant toi pour protéger la nuque."]},
+ {id:'triceps_dip_air', name:'Extensions triceps au sol', cat:'Haut du corps – Push', icon:'🦾', type:'reps', sets:3, val:12, rest:45, tips:[
+   "Position de pompe, coudes serrés le long du corps (pas écartés).",
+   "Ne fléchis que les coudes, garde les épaules stables.",
+   "Évite de creuser le bas du dos pendant le mouvement."]},
+ {id:'table_row', name:'Tirage sous table (Rowing)', cat:'Haut du corps – Pull', icon:'🚣', type:'reps', sets:3, val:12, rest:60, tips:[
+   "Allonge-toi sous une table solide et stable (vérifie qu'elle ne bouge pas avant de commencer), attrape le rebord à largeur d'épaules.",
+   "Corps gainé en ligne droite des talons à la tête, tire la poitrine vers la table en serrant les omoplates.",
+   "Redescends lentement sans reposer complètement le dos au sol entre deux répétitions, et évite toute table pliante ou fragile."]},
+ {id:'ytw_raise', name:'Y-T-W (dos & épaules)', cat:'Haut du corps – Pull', icon:'🦅', type:'reps', sets:3, val:10, rest:45, tips:[
+   "Allongé sur le ventre, lève les bras tendus en formant un Y, puis un T, puis un W, en serrant les omoplates à chaque position.",
+   "Amplitude modérée : la contraction entre les omoplates compte plus que la hauteur atteinte par les bras.",
+   "Garde la nuque neutre et évite de cambrer excessivement le bas du dos."]},
+ {id:'towel_row_door', name:'Tirage horizontal (serviette + porte)', cat:'Haut du corps – Pull', icon:'🚪', type:'reps', sets:3, val:12, rest:60, tips:[
+   "Ouvre la porte à moitié, passe une serviette autour du poignet de la porte et tiens une extrémité dans chaque main de part et d'autre.",
+   "Penche-toi en arrière bras tendus, puis tire ton corps vers la porte en gardant le dos droit et le gainage actif.",
+   "Teste impérativement la solidité de la porte et des gonds avant de charger tout ton poids dessus."]},
+ {id:'towel_pullup_door', name:'Traction verticale (serviette + porte)', cat:'Haut du corps – Pull', icon:'🧗', type:'reps', sets:3, val:6, rest:90, tips:[
+   "Passe la serviette par-dessus le haut du battant, idéalement près des charnières, puis ferme la porte pour la bloquer.",
+   "Tiens les deux extrémités, penche-toi légèrement en arrière et tire-toi vers le haut jusqu'à ce que ton menton dépasse le niveau de la porte.",
+   "Vérifie impérativement la solidité de la porte et des gonds avant de te suspendre : jamais sur une porte fragile ou mal fixée.",
+   "Évite les portes intérieures creuses (la plupart des portes d'intérieur le sont) : privilégie une porte pleine/extérieure, ou utilise une vraie barre de traction si tu as un doute.",
+   "Sollicite aussi fortement la force de préhension (grip) des avant-bras — normal de fatiguer vite au début."]},
+ {id:'pull_up', name:'Tractions à la barre', cat:'Haut du corps – Pull', icon:'⬆️', type:'reps', sets:3, val:6, rest:90, equip:'pullupBar', tips:[
+   "Saisis la barre en pronation (paumes vers l'avant), mains un peu plus larges que les épaules.",
+   "Engage les omoplates avant de tirer avec les bras, monte jusqu'à ce que le menton dépasse la barre, redescends en contrôlant le mouvement.",
+   "Évite de te balancer (kipping) tant que la technique stricte n'est pas maîtrisée, pour protéger les épaules.",
+   "Vérifie que la barre est solidement fixée et supporte ton poids avant de t'y suspendre."]},
+ {id:'bar_dip', name:'Dips sur barre parallèles', cat:'Haut du corps – Push', icon:'↕️', type:'reps', sets:3, val:8, rest:75, equip:'dipBar', tips:[
+   "Bras tendus au départ, corps vertical et légèrement penché en avant pour cibler les pectoraux.",
+   "Descends jusqu'à ce que les épaules arrivent à hauteur des coudes environ, pas plus bas si tu manques de mobilité.",
+   "Remonte en poussant sans verrouiller brutalement les coudes, gainage actif pour stabiliser le corps.",
+   "Vérifie la stabilité de la barre avant de t'y suspendre en charge."]},
+ {id:'chair_dip', name:'Dips sur chaise', cat:'Haut du corps – Push', icon:'⬇️', type:'reps', sets:3, val:10, rest:60, equip:'chair', tips:[
+   "Mains sur le bord de la chaise, doigts vers l'avant, jambes tendues devant toi (ou fléchies pour plus de facilité).",
+   "Descends en pliant les coudes vers l'arrière (pas sur les côtés), jusqu'à un angle d'environ 90°.",
+   "Remonte en poussant sur les paumes, épaules basses loin des oreilles pour protéger les articulations.",
+   "Utilise une chaise stable, qui ne glisse pas et ne bascule pas — jamais de chaise à roulettes ou pliante."]},
+ {id:'squat', name:'Squats', cat:'Bas du corps', icon:'🦵', type:'reps', sets:3, val:20, rest:45, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux : il renforce l'activation des fessiers et t'aide à empêcher les genoux de rentrer vers l'intérieur.", tips:[
+   "Pieds largeur d'épaules, pointes légèrement ouvertes.",
+   "Genoux dans l'axe des pieds : ils ne doivent pas partir vers l'intérieur.",
+   "Poids réparti sur tout le pied (pas seulement les pointes), dos neutre."]},
+ {id:'jump_squat', name:'Squats sautés', cat:'Bas du corps', icon:'🚀', type:'reps', sets:3, val:15, rest:60, tips:[
+   "Même technique que le squat classique, avec une poussée explosive vers le haut.",
+   "Réception souple, genoux fléchis, pieds à plat pour amortir le choc.",
+   "À éviter en cas de douleur aux genoux ou aux chevilles (fort impact)."]},
+ {id:'lunge', name:'Fentes avant', cat:'Bas du corps', icon:'🦿', type:'reps', sets:3, val:12, rest:45, level:'Intermédiaire', bandTip:"Place l'élastique juste au-dessus des genoux pour un travail supplémentaire de stabilité des hanches à chaque pas.", tips:[
+   "Grand pas en avant, descends jusqu'à 90° aux deux genoux.",
+   "Le genou avant reste au-dessus de la cheville, jamais au-delà des orteils.",
+   "Le genou arrière frôle le sol sans le percuter, remonte en poussant sur le talon avant."]},
+ {id:'jump_lunge', name:'Fentes sautées', cat:'Bas du corps', icon:'⚡', type:'reps', sets:3, val:10, rest:60, tips:[
+   "Alterne les jambes en l'air, réception souple et contrôlée à chaque saut.",
+   "Buste droit, gainage actif pour garder l'équilibre.",
+   "Impact élevé sur les genoux et chevilles : à réduire en cas de gêne articulaire."]},
+ {id:'glute_bridge', name:'Pont fessier', cat:'Bas du corps', icon:'🌉', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux pour augmenter l'activation des fessiers moyens en plus des grands fessiers.", tips:[
+   "Allongé, pieds à plat proches des fessiers, pousse en appuyant sur les talons.",
+   "Contracte les fessiers en haut du mouvement, sans cambrer excessivement le bas du dos.",
+   "Monte et descends lentement, sans à-coups."]},
+ {id:'bench_hip_thrust', name:'Hip Thrust (banc)', cat:'Bas du corps', icon:'🛋️', type:'reps', sets:3, val:15, rest:45, equip:'bench', level:'Intermédiaire', bandTip:"Place l'élastique juste au-dessus des genoux pour ajouter un travail des fessiers moyens à l'extension de hanche.", tips:[
+   "Haut du dos calé sur le bord d'un banc stable, pieds à plat au sol, genoux fléchis à 90°.",
+   "Pousse à travers les talons pour lever les hanches, contraction maximale des fessiers en haut du mouvement.",
+   "Redescends sans reposer complètement les fessiers au sol entre les répétitions, menton légèrement rentré.",
+   "Vérifie que le banc est stable et ne peut pas glisser avant de commencer."]},
+ {id:'calf_raise', name:'Montées sur pointes', cat:'Bas du corps', icon:'🩰', type:'reps', sets:3, val:20, rest:30, tips:[
+   "Monte sur la pointe des pieds, marque une pause, redescends lentement.",
+   "Jambes tendues sans verrouiller les genoux en extension complète.",
+   "Prends appui sur un mur ou une chaise si l'équilibre est difficile."]},
+ {id:'wall_sit', name:'Chaise (Wall sit)', cat:'Bas du corps', icon:'🪑', type:'time', sets:3, val:45, rest:45, tips:[
+   "Dos entièrement plaqué contre un mur, cuisses parallèles au sol.",
+   "Genoux alignés avec les chevilles, jamais au-delà des orteils.",
+   "Respire normalement tout au long de la position, ne bloque pas ta respiration."]},
+ {id:'hip_abduction', name:'Abduction hanche', cat:'Bas du corps', icon:'🦩', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Ajoute l'élastique au-dessus des genoux ou autour des chevilles pour plus de résistance sur tout le mouvement.", tips:[
+   "Allongé sur le côté, jambes tendues et légèrement avancées devant le buste pour plus de stabilité.",
+   "Lève la jambe du dessus vers le plafond sans faire rouler le bassin vers l'arrière.",
+   "Redescends lentement sans reposer complètement la jambe, garde le tronc gainé."]},
+ {id:'frog_pump', name:'Frog Pump', cat:'Bas du corps', icon:'🐸', type:'reps', sets:3, val:20, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux pour intensifier la contraction fessière en haut du mouvement.", tips:[
+   "Allongé sur le dos, plantes de pieds jointes, genoux ouverts vers l'extérieur.",
+   "Pousse le bassin vers le plafond en contractant fort les fessiers, sans forcer sur le bas du dos.",
+   "Amplitude courte et contrôlée : la contraction compte plus que la hauteur."]},
+ {id:'standing_kickback', name:'Kick Back debout', cat:'Bas du corps', icon:'🍑', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des chevilles pour une résistance constante sur toute l'amplitude du mouvement.", tips:[
+   "Debout, mains posées sur un support stable (chaise, mur) pour l'équilibre, jambe d'appui légèrement fléchie.",
+   "Pousse une jambe tendue vers l'arrière en contractant le fessier, sans te pencher en avant ni cambrer le bas du dos.",
+   "Redescends lentement sans reposer le pied au sol entre les répétitions, garde le bassin stable et gainé."]},
+ {id:'standing_abduction', name:'Abduction debout', cat:'Bas du corps', icon:'➡️', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique au-dessus des genoux ou des chevilles pour renforcer le travail des fessiers moyens.", tips:[
+   "Debout, appui sur un support stable, jambe d'appui légèrement fléchie, buste droit.",
+   "Lève l'autre jambe tendue sur le côté sans faire basculer le bassin ni te pencher du côté opposé.",
+   "Redescends lentement sans reposer le pied, garde les hanches face à l'avant tout du long."]},
+ {id:'standing_combo', name:'Kick Back + Abduction debout', cat:'Bas du corps', icon:'🔀', type:'reps', sets:3, val:12, rest:30, level:'Intermédiaire', bandTip:"Un seul élastique aux chevilles suffit pour intensifier les deux mouvements de l'enchaînement.", tips:[
+   "Sur une même jambe : pousse-la tendue vers l'arrière (kick back) puis ramène-la sur le côté (abduction), sans reposer le pied entre les deux.",
+   "Garde le bassin stable et gainé pendant tout l'enchaînement, sans te pencher d'un côté ni cambrer le dos.",
+   "Termine toutes les répétitions d'un côté avant de changer de jambe, mouvement lent pour bien isoler le fessier plutôt que d'aller vite."]},
+ {id:'plank', name:'Gainage (Planche)', cat:'Abdos / Core', icon:'🧘', type:'time', sets:3, val:40, rest:30, tips:[
+   "Avant-bras et pointes de pieds au sol, corps aligné de la tête aux talons.",
+   "Gainage abdominal et fessiers actifs : les hanches ne doivent ni tomber ni trop monter.",
+   "Nuque relâchée, regard légèrement devant toi plutôt que vers le bas."]},
+ {id:'side_plank', name:'Gainage latéral', cat:'Abdos / Core', icon:'↔️', type:'time', sets:2, val:30, rest:30, tips:[
+   "Appui sur un avant-bras, corps en ligne droite de la tête aux pieds.",
+   "Hanches hautes et stables, ne les laisse pas s'affaisser vers le sol.",
+   "Empile les pieds ou décale légèrement le pied du dessus pour l'équilibre."]},
+ {id:'crunch', name:'Crunchs', cat:'Abdos / Core', icon:'🔥', type:'reps', sets:3, val:20, rest:30, tips:[
+   "Genoux fléchis, pieds au sol, mains soutenant légèrement la tête sans tirer sur la nuque.",
+   "Décolle uniquement les omoplates du sol, contraction abdominale.",
+   "Mouvement lent et contrôlé, expire en montant."]},
+ {id:'leg_raise', name:'Relevés de jambes', cat:'Abdos / Core', icon:'📐', type:'reps', sets:3, val:15, rest:30, tips:[
+   "Allongé sur le dos, contracte les abdos pour garder le bas du dos plaqué au sol.",
+   "Jambes tendues ou légèrement fléchies, montée et descente contrôlées.",
+   "Ne laisse jamais les jambes retomber brusquement au sol."]},
+ {id:'superman', name:'Superman', cat:'Abdos / Core', icon:'🦸', type:'reps', sets:3, val:15, rest:30, tips:[
+   "Allongé sur le ventre, lève bras et jambes en même temps.",
+   "Amplitude modérée : inutile de monter très haut pour que ce soit efficace.",
+   "Mouvement lent, sans à-coups, pour préserver le bas du dos."]},
+ {id:'bird_dog', name:'Bird-Dog', cat:'Abdos / Core', icon:'🐕', type:'reps', sets:3, val:10, rest:30, tips:[
+   "À quatre pattes, mains sous les épaules, genoux sous les hanches, dos neutre.",
+   "Tends un bras devant toi et la jambe opposée derrière en même temps, sans faire basculer le bassin.",
+   "Reviens lentement à la position de départ avant de changer de côté : mouvement contrôlé plutôt que rapide."]},
+ {id:'l_sit', name:'L-Sit', cat:'Abdos / Core', icon:'📏', type:'time', sets:3, val:15, rest:60, tips:[
+   "Assis, mains posées au sol à côté des hanches, doigts vers l'avant, pousse pour décoller le bassin du sol.",
+   "Jambes tendues devant toi à l'horizontale, épaules basses loin des oreilles.",
+   "Exercice avancé et exigeant pour les poignets : commence par des tenues courtes et arrête en cas de douleur au poignet."]},
+ {id:'hollow_hold', name:'Hollow Hold', cat:'Abdos / Core', icon:'🌙', type:'time', sets:3, val:25, rest:45, tips:[
+   "Allongé sur le dos, bas du dos plaqué au sol, bras tendus au-dessus de la tête et jambes tendues, légèrement décollées du sol.",
+   "Si le bas du dos se cambre ou décolle, remonte les jambes ou rapproche les bras du corps pour réduire la difficulté.",
+   "Respire normalement pendant le maintien, sans bloquer ta respiration."]},
+ {id:'dragon_flag', name:'Dragon Flag', cat:'Abdos / Core', icon:'🐉', type:'reps', sets:3, val:5, rest:90, level:'Avancé', tips:[
+   "Allongé sur un banc ou au sol, agrippe un point fixe stable derrière la tête (bord du banc, pied de meuble fixe) — jamais un objet qui peut bouger.",
+   "Corps gainé comme une planche rigide, décolle tout le corps sauf les épaules, puis redescends très lentement sans jamais te laisser tomber : si tu perds le contrôle, plie les genoux pour couper le mouvement plutôt que de chuter.",
+   "Débutant sur ce mouvement : commence genoux fléchis (version tuck) plutôt que jambes tendues, et arrête si le bas du dos se cambre ou travaille à la place des abdos.",
+   "Exercice très avancé : maîtrise d'abord le hollow hold et le L-sit avant de tenter la version complète."]},
+ {id:'mountain_climber', name:'Mountain Climbers', cat:'Cardio', icon:'⛰️', type:'time', sets:3, val:30, rest:30, tips:[
+   "Position de pompe, ramène les genoux vers la poitrine en alternant les jambes.",
+   "Garde les hanches basses et stables, épaules au-dessus des mains.",
+   "Augmente le rythme progressivement sans sacrifier la position."]},
+ {id:'burpee', name:'Burpees', cat:'Cardio', icon:'🔄', type:'reps', sets:3, val:10, rest:60, tips:[
+   "Enchaîne squat, pompe et saut en gardant le dos neutre à chaque étape.",
+   "Réception souple à l'atterrissage du saut, genoux fléchis.",
+   "Retire le saut ou la pompe si tu dois préserver tes articulations."]},
+ {id:'jumping_jack', name:'Jumping Jacks', cat:'Cardio', icon:'✖️', type:'time', sets:3, val:30, rest:20, tips:[
+   "Réception souple sur l'avant du pied, genoux légèrement fléchis.",
+   "Garde un rythme régulier et une respiration fluide.",
+   "Réduis l'amplitude des sauts si les épaules ou les chevilles sont sensibles."]},
+ {id:'high_knees', name:'Montées de genoux', cat:'Cardio', icon:'🏃', type:'time', sets:3, val:30, rest:20, tips:[
+   "Monte les genoux à hauteur de hanche en alternant rapidement.",
+   "Reste sur l'avant du pied, buste droit, gainage actif.",
+   "Diminue l'intensité en cas de gêne aux genoux ou aux hanches."]},
+];
+
+const GENERIC_TIPS = [
+  "Échauffe-toi avant de commencer et hydrate-toi pendant la séance.",
+  "Garde le dos neutre et le gainage actif tout au long du mouvement.",
+  "Privilégie un mouvement lent et contrôlé plutôt que la vitesse.",
+  "Arrête l'exercice en cas de douleur articulaire (pas de simple fatigue musculaire) et adapte l'amplitude ou l'intensité."
+];
+
+const EQUIPMENT_LABELS = {
+  pullupBar: 'Barre de traction',
+  dipBar: 'Barre de dips',
+  chair: 'Chaise',
+  bench: 'Banc',
+  bands: 'Élastiques'
+};
+const EQUIPMENT_NOTES = {
+  pullupBar: 'Débloque les tractions à la barre.',
+  dipBar: 'Débloque les dips sur barre parallèles.',
+  chair: 'Débloque les dips sur chaise.',
+  bench: 'Débloque le hip thrust surélevé.',
+  bands: "N'empêche rien : ajoute un conseil de progression sur les exercices compatibles (fessiers/hanches)."
+};
+
+function defaultSessions(){
+  const pick = (id, over={}) => { const e = EXO_LIB.find(x=>x.id===id); return {libId:e.id, name:e.name, icon:e.icon, type:e.type, sets:over.sets??e.sets, val:over.val??e.val, rest:over.rest??e.rest}; };
+  return [
+    {id:'s_full', name:'Full Body Débutant', restBetween:30, exos:[pick('squat'),pick('pushup',{val:10}),pick('glute_bridge'),pick('plank',{val:30}),pick('jumping_jack')]},
+    {id:'s_hiit', name:'HIIT Cardio', restBetween:20, exos:[pick('jumping_jack'),pick('mountain_climber'),pick('burpee',{val:8}),pick('high_knees'),pick('jump_squat')]},
+    {id:'s_abs', name:'Abdos Express', restBetween:20, exos:[pick('crunch'),pick('leg_raise'),pick('plank'),pick('side_plank'),pick('superman')]},
+  ];
+}
+
+/* ---------------- STORAGE ---------------- */
+const LS_SESSIONS = 'cal_sessions_v1';
+const LS_CUSTOM = 'cal_custom_exos_v1';
+const LS_SETTINGS = 'cal_settings_v1';
+const LS_EQUIPMENT = 'cal_equipment_v1';
+const LS_LOGS = 'cal_logs_v1';
+
+function loadSessions(){
+  try{
+    const raw = localStorage.getItem(LS_SESSIONS);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  const d = defaultSessions();
+  saveSessions(d);
+  return d;
+}
+function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
+function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
+function saveCustomExos(a){ try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
+function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true}; } }
+function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
+function loadEquipment(){ try{ return Object.assign({pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}, JSON.parse(localStorage.getItem(LS_EQUIPMENT)||'{}')); }catch(e){ return {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}; } }
+function saveEquipment(eq){ try{ localStorage.setItem(LS_EQUIPMENT, JSON.stringify(eq)); }catch(e){} }
+function loadLogs(){ try{ return JSON.parse(localStorage.getItem(LS_LOGS)||'[]'); }catch(e){ return []; } }
+function saveLogs(l){ try{ localStorage.setItem(LS_LOGS, JSON.stringify(l)); }catch(e){} }
+function gatherAllData(){
+  return { app:'calisthenie-maison', version:1, exportedAt:new Date().toISOString(), sessions, customExos, settings, equipment, logs };
+}
+
+/* ---------------- STATE ---------------- */
+let sessions = loadSessions();
+let customExos = loadCustomExos();
+let settings = loadSettings();
+let equipment = loadEquipment();
+let logs = loadLogs();
+let view = 'home'; // home | builder | library | tracking | player
+let builderDraft = null; // session being built
+let sheet = null; // {type:'addExo'|'customExo'|'tips'|'equipment'}
+let player = null; // player state
+
+function allExoLibrary(){ return EXO_LIB.concat(customExos); }
+function hasEquipment(exo){ return !exo.equip || !!equipment[exo.equip]; }
+function availableExoLibrary(){ return allExoLibrary().filter(hasEquipment); }
+function getExoById(id){ return allExoLibrary().find(x=>x.id===id); }
+function getTipsFor(id){ const e = getExoById(id); return (e && e.tips && e.tips.length) ? e.tips : GENERIC_TIPS; }
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ---------------- AUDIO ---------------- */
+let actx = null;
+function beep(freq, dur, vol){
+  if(!settings.sound) return;
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    g.gain.value = (vol!=null?vol:0.15);
+    o.connect(g); g.connect(actx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur/1000);
+    o.stop(actx.currentTime + dur/1000 + 0.02);
+  }catch(e){}
+}
+function vibrate(pattern){
+  if(!settings.vibrate) return;
+  try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
+}
+
+/* ---------------- RENDER ROOT ---------------- */
+function render(){
+  const app = document.getElementById('app');
+  let html = '';
+  if(view === 'player' && player){
+    html = renderPlayer();
+  } else {
+    html = renderHeader() + (
+      view === 'home' ? renderHome() :
+      view === 'builder' ? renderBuilder() :
+      view === 'library' ? renderLibrary() :
+      view === 'tracking' ? renderTracking() : ''
+    );
+  }
+  app.innerHTML = html + renderSheet();
+  attachEvents();
+}
+
+function renderHeader(){
+  return `
+  <div class="header">
+    <div class="brand">
+      <div class="logo">🏋️</div>
+      <div>
+        <h1>Calisthénie Maison</h1>
+        <p>Séances sans matériel, à ton rythme</p>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button data-nav="home" class="${view==='home'?'active':''}">Séances</button>
+      <button data-nav="builder" class="${view==='builder'?'active':''}">Créer</button>
+      <button data-nav="library" class="${view==='library'?'active':''}">Exercices</button>
+      <button data-nav="tracking" class="${view==='tracking'?'active':''}">Suivi</button>
+    </nav>
+  </div>`;
+}
+
+/* ---------------- HOME ---------------- */
+function renderHome(){
+  const newBtn = `<button class="btn primary block" data-action="newSession" style="margin-bottom:16px;">+ Nouvelle séance</button>`;
+  if(sessions.length===0){
+    return newBtn + `<div class="empty"><div class="big">🧘</div><h3>Aucune séance</h3><p>Crée ta première séance avec le bouton ci-dessus.</p></div>`;
+  }
+  return newBtn + sessions.map((s,i)=>{
+    const totalSets = s.exos.reduce((a,e)=>a+e.sets,0);
+    const estMin = Math.round(s.exos.reduce((a,e)=>{
+      const work = e.type==='time' ? e.val : e.val*2.5;
+      return a + e.sets*work + (e.sets-1)*e.rest;
+    },0)/60);
+    return `
+    <div class="card">
+      <div class="row between">
+        <div>
+          <h2>${escapeHtml(s.name)}</h2>
+          <p>${s.exos.length} exercices · ${totalSets} séries · ~${estMin} min</p>
+        </div>
+        <div class="row">
+          <button class="icon-btn" data-edit-session="${i}" title="Modifier">✏️</button>
+          <button class="icon-btn" data-del-session="${i}" title="Supprimer">🗑️</button>
+        </div>
+      </div>
+      <div class="row wrap" style="margin-top:10px;">
+        ${s.exos.slice(0,5).map(e=>`<span class="pill">${e.icon} ${escapeHtml(e.name)}</span>`).join('')}
+        ${s.exos.length>5?`<span class="pill">+${s.exos.length-5}</span>`:''}
+      </div>
+      <button class="btn primary block" style="margin-top:12px;" data-start-session="${i}">▶ Démarrer</button>
+    </div>`;
+  }).join('') + `
+  <div class="card tight" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <span style="font-size:13px;color:var(--muted);">Réglages</span>
+    <div class="row wrap">
+      <button class="btn sm ${settings.sound?'accent':'ghost'}" data-toggle="sound">🔊 Son ${settings.sound?'ON':'OFF'}</button>
+      <button class="btn sm ${settings.vibrate?'accent':'ghost'}" data-toggle="vibrate">📳 Vibration ${settings.vibrate?'ON':'OFF'}</button>
+      <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
+      <button class="btn sm ghost" data-action="openExport">📤 Export</button>
+      <button class="btn sm ghost" data-action="openImport">📥 Import</button>
+    </div>
+  </div>`;
+}
+
+/* ---------------- BUILDER ---------------- */
+function newDraft(){
+  return {id:'s_'+Date.now(), name:'Nouvelle séance', restBetween:30, exos:[]};
+}
+function renderBuilder(){
+  if(!builderDraft) builderDraft = newDraft();
+  const d = builderDraft;
+  return `
+  <div class="card">
+    <label class="field">
+      <span>Nom de la séance</span>
+      <input type="text" id="sessionName" value="${escapeAttr(d.name)}">
+    </label>
+    <label class="field">
+      <span>Repos entre chaque exercice (secondes)</span>
+      <input type="number" id="restBetween" min="0" step="5" value="${d.restBetween}">
+    </label>
+  </div>
+
+  <h2 style="margin:6px 2px 10px;">Exercices (${d.exos.length})</h2>
+  ${d.exos.length===0? `<div class="empty" style="padding:20px;"><div class="big">➕</div><p>Ajoute des exercices depuis la bibliothèque.</p></div>` : ''}
+  ${d.exos.map((e,i)=>renderBuilderExo(e,i)).join('')}
+
+  <button class="btn accent block" data-action="openAddExo" style="margin-top:6px;">+ Ajouter un exercice</button>
+
+  <div class="row" style="margin-top:16px;gap:10px;">
+    <button class="btn ghost block" data-action="cancelBuilder">Annuler</button>
+    <button class="btn primary block" data-action="saveSession" ${d.exos.length===0?'disabled':''}>💾 Enregistrer la séance</button>
+  </div>
+  `;
+}
+function renderBuilderExo(e,i){
+  const libExo = getExoById(e.libId);
+  const equipNote = (libExo && libExo.equip) ? ` · 🎒 ${EQUIPMENT_LABELS[libExo.equip]}` : '';
+  return `
+  <div class="exo-item">
+    <div class="emoji">${e.icon}</div>
+    <div class="meta">
+      <b>${escapeHtml(e.name)}</b>
+      <small>${e.type==='time' ? e.val+'s / série' : e.val+' reps / série'} · repos ${e.rest}s${equipNote}</small>
+    </div>
+    <div class="stepper" title="Séries">
+      <button data-stepper="sets" data-i="${i}" data-d="-1">−</button>
+      <span>${e.sets}×</span>
+      <button data-stepper="sets" data-i="${i}" data-d="1">+</button>
+    </div>
+    <div class="stepper" title="${e.type==='time'?'Secondes':'Répétitions'}">
+      <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?-5:-1}">−</button>
+      <span>${e.val}</span>
+      <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?5:1}">+</button>
+    </div>
+    <button class="icon-btn" data-tips="${e.libId}" title="Conseils">💡</button>
+    <button class="icon-btn" data-remove-exo="${i}">✕</button>
+  </div>`;
+}
+
+/* ---------------- LIBRARY ---------------- */
+function renderLibrary(){
+  const cats = {};
+  allExoLibrary().forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
+  let html = `<button class="btn ghost block" data-action="openEquipment" style="margin-bottom:10px;">🎒 Gérer mon équipement</button>
+  <button class="btn accent block" data-action="openCustomExo" style="margin-bottom:14px;">+ Créer un exercice personnalisé</button>`;
+  Object.keys(cats).forEach(cat=>{
+    html += `<div class="cat-title">${escapeHtml(cat)}</div>`;
+    cats[cat].forEach(e=>{
+      const locked = e.equip && !equipment[e.equip];
+      const levelNote = e.level ? ` · ${escapeHtml(e.level)}` : '';
+      const bandNote = e.bandTip ? ' · 🎗️ élastique en option' : '';
+      html += `<div class="card tight lib-item" style="margin-bottom:8px;${locked?'opacity:.5;':''}" data-tips="${e.id}">
+        <span class="emoji">${e.icon}</span>
+        <div style="flex:1;">
+          <b>${escapeHtml(e.name)}</b>
+          <small>${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${e.sets}×${e.val}${e.type==='time'?'s':''}${levelNote}${bandNote}${locked?` · 🔒 ${EQUIPMENT_LABELS[e.equip]}`:''}</small>
+        </div>
+        <span class="pill">${locked?'🔒':'💡'}</span>
+        ${e.custom? `<button class="icon-btn" data-del-custom="${e.id}">🗑️</button>` : ''}
+      </div>`;
+    });
+  });
+  return html;
+}
+
+/* ---------------- TRACKING ---------------- */
+function formatLogDate(iso){
+  try{
+    const d = new Date(iso);
+    const weekday = d.toLocaleDateString('fr-FR', {weekday:'long'});
+    const dateStr = d.toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+    const timeStr = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    const cap = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+    return `${cap} ${dateStr} à ${timeStr}`;
+  }catch(e){ return iso; }
+}
+function renderTracking(){
+  if(logs.length===0){
+    return `<div class="empty"><div class="big">📊</div><h3>Aucune séance enregistrée</h3><p>Termine une séance pour voir apparaître ton suivi ici.</p></div>`;
+  }
+  const rows = logs.slice().reverse().map((log,idx)=>{
+    const realIdx = logs.length-1-idx;
+    const exoRows = log.exercises.map(ex=>{
+      const unit = ex.type==='time' ? 's' : '';
+      const plannedStr = `${ex.plannedSets}×${ex.plannedVal}${unit}`;
+      const statusHtml = ex.completed
+        ? `<span class="pill" style="color:var(--accent2);">✓ ${plannedStr}</span>`
+        : `<span class="pill" style="color:var(--accent);">${ex.actualSets}×${ex.actualVal}${unit} <span style="color:var(--muted);">(obj. ${plannedStr})</span></span>`;
+      return `<div class="row between" style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);">
+        <span>${ex.icon} ${escapeHtml(ex.name)}</span>
+        ${statusHtml}
+      </div>`;
+    }).join('');
+    return `<div class="card">
+      <div class="row between">
+        <div>
+          <h2>${escapeHtml(log.sessionName)}</h2>
+          <p>${formatLogDate(log.dateISO)}</p>
+        </div>
+        <button class="icon-btn" data-del-log="${realIdx}" title="Supprimer">🗑️</button>
+      </div>
+      <div style="margin-top:8px;">${exoRows}</div>
+    </div>`;
+  }).join('');
+  return rows + `<button class="btn ghost block" data-action="clearLogs" style="margin-top:6px;">🗑️ Effacer tout l'historique</button>`;
+}
+
+/* ---------------- ADD/EDIT EXO SHEET ---------------- */
+function renderSheet(){
+  if(!sheet) return '';
+  if(sheet.type==='addExo'){
+    const cats = {};
+    availableExoLibrary().forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
+    const lockedCount = allExoLibrary().length - availableExoLibrary().length;
+    let items = '';
+    Object.keys(cats).forEach(cat=>{
+      items += `<div class="cat-title">${escapeHtml(cat)}</div>`;
+      cats[cat].forEach(e=>{
+        items += `<div class="lib-item" data-pick-exo="${e.id}">
+          <span class="emoji">${e.icon}</span>
+          <div><b>${escapeHtml(e.name)}</b><small>${e.type==='time'?e.val+'s':e.val+' reps'} · ${e.sets} séries</small></div>
+        </div>`;
+      });
+    });
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+      <h3>Choisir un exercice</h3>
+      ${items}
+      ${lockedCount>0? `<p style="margin:12px 2px 0;">🔒 ${lockedCount} exercice${lockedCount>1?'s':''} nécessitant du matériel non activé. <button class="tips-btn" data-action="openEquipment" style="margin:8px 0 0;">🎒 Gérer mon équipement</button></p>` : ''}
+      <button class="btn ghost block" style="margin-top:12px;" data-action="closeSheet">Fermer</button>
+    </div></div>`;
+  }
+  if(sheet.type==='customExo'){
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+      <h3>Nouvel exercice personnalisé</h3>
+      <label class="field"><span>Nom</span><input type="text" id="customName" placeholder="Ex : Pompes archer"></label>
+      <label class="field"><span>Type</span>
+        <select id="customType">
+          <option value="reps">Répétitions</option>
+          <option value="time">Durée (temps)</option>
+        </select>
+      </label>
+      <label class="field"><span>Catégorie</span>
+        <select id="customCat">
+          <option>Haut du corps – Push</option><option>Haut du corps – Pull</option><option>Bas du corps</option><option>Abdos / Core</option><option>Cardio</option>
+        </select>
+      </label>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn ghost block" data-action="closeSheet">Annuler</button>
+        <button class="btn primary block" data-action="saveCustomExo">Créer</button>
+      </div>
+    </div></div>`;
+  }
+  if(sheet.type==='tips'){
+    const exo = getExoById(sheet.exoId) || {name:'Exercice', icon:'⭐'};
+    const tips = getTipsFor(sheet.exoId);
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+      <div class="row" style="margin-bottom:4px;">
+        <span style="font-size:30px;">${exo.icon}</span>
+        <h3 style="margin:0;">${escapeHtml(exo.name)}</h3>
+      </div>
+      ${exo.level ? `<p style="margin-bottom:6px;"><span class="pill">Niveau : ${escapeHtml(exo.level)}</span></p>` : ''}
+      <p style="margin-bottom:16px;">Bonne exécution &amp; préservation des articulations</p>
+      <ul class="tips-list">${tips.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ul>
+      ${exo.bandTip ? `<div class="card tight" style="margin-top:16px;border-color:var(--accent2);">
+        <b style="color:var(--accent2);">🎗️ Intensifier avec un élastique</b>
+        <p style="margin-top:4px;color:var(--text);font-size:13px;">${escapeHtml(exo.bandTip)}</p>
+        ${!equipment.bands ? `<button class="tips-btn" data-action="openEquipment" style="margin-top:8px;">🎒 Activer "Élastiques" dans mon équipement</button>` : ''}
+      </div>` : ''}
+      <button class="btn ghost block" style="margin-top:18px;" data-action="closeSheet">Fermer</button>
+    </div></div>`;
+  }
+  if(sheet.type==='equipment'){
+    const rows = Object.keys(EQUIPMENT_LABELS).map(key=>{
+      const on = !!equipment[key];
+      return `<div class="row between" style="padding:12px 4px;border-bottom:1px solid var(--border);">
+        <div>
+          <b style="font-family:var(--font-display);font-size:15px;">${EQUIPMENT_LABELS[key]}</b>
+          <div style="font-size:12px;color:var(--muted);">${EQUIPMENT_NOTES[key]}</div>
+        </div>
+        <button class="btn sm ${on?'accent':'ghost'}" data-toggle-equip="${key}">${on?'✓ Activé':'Désactivé'}</button>
+      </div>`;
+    }).join('');
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+      <h3>🎒 Mon équipement</h3>
+      <p style="margin-bottom:6px;">Active ce que tu as chez toi pour débloquer les exercices correspondants.</p>
+      ${rows}
+      <button class="btn ghost block" style="margin-top:18px;" data-action="closeSheet">Fermer</button>
+    </div></div>`;
+  }
+  if(sheet.type==='export'){
+    const json = JSON.stringify(gatherAllData(), null, 2);
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+      <h3>📤 Exporter mes données</h3>
+      <p style="margin-bottom:10px;">Copie ce texte et garde-le quelque part (note, email, fichier...) pour le récupérer plus tard ou sur un autre appareil via "Importer".</p>
+      <textarea readonly id="exportArea" style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:var(--font-mono);font-size:11px;">${escapeHtml(json)}</textarea>
+      <div class="row" style="margin-top:12px;gap:10px;">
+        <button class="btn ghost block" data-action="closeSheet">Fermer</button>
+        <button class="btn primary block" data-action="copyExport">📋 Copier</button>
+      </div>
+    </div></div>`;
+  }
+  if(sheet.type==='import'){
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+      <h3>📥 Importer des données</h3>
+      <p style="margin-bottom:10px;">Colle ici le texte exporté depuis un autre appareil. <b>Cela remplacera tes séances, exercices personnalisés, équipement et suivi actuels.</b></p>
+      <textarea id="importArea" placeholder="Colle le JSON exporté ici..." style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:var(--font-mono);font-size:11px;"></textarea>
+      <div class="row" style="margin-top:12px;gap:10px;">
+        <button class="btn ghost block" data-action="closeSheet">Annuler</button>
+        <button class="btn primary block" data-action="doImport">📥 Importer</button>
+      </div>
+    </div></div>`;
+  }
+  return '';
+}
+
+/* ---------------- PLAYER ---------------- */
+function flattenSteps(session){
+  const steps = [];
+  session.exos.forEach((e,ei)=>{
+    for(let s=0;s<e.sets;s++) steps.push({exoIndex:ei, setIndex:s, exo:e});
+  });
+  return steps;
+}
+
+function startSession(idx){
+  const session = JSON.parse(JSON.stringify(sessions[idx]));
+  const steps = flattenSteps(session);
+  if(steps.length===0){ toast('Cette séance est vide.'); return; }
+  player = {
+    session, steps, stepIdx:0,
+    phase:'work',
+    remaining: steps[0].exo.type==='time' ? steps[0].exo.val : null,
+    running:false,
+    endAt:null,
+    intervalId:null,
+    restDuration:null,
+    beepedAt:{}
+  };
+  view = 'player';
+  render();
+}
+
+function currentStep(){ return player.steps[player.stepIdx]; }
+
+function clearTick(){
+  if(player.intervalId){ clearInterval(player.intervalId); player.intervalId=null; }
+}
+
+function startCountdown(seconds){
+  player.remaining = seconds;
+  player.running = true;
+  player.endAt = Date.now() + seconds*1000;
+  player.beepedAt = {};
+  clearTick();
+  player.intervalId = setInterval(tick, 200);
+  render();
+}
+
+function tick(){
+  if(!player || !player.running) return;
+  const remainingMs = player.endAt - Date.now();
+  const remaining = Math.max(0, Math.ceil(remainingMs/1000));
+  if(remaining !== player.remaining){
+    player.remaining = remaining;
+    if(remaining<=3 && remaining>0 && !player.beepedAt[remaining]){
+      player.beepedAt[remaining]=true; beep(880,120,0.12);
+    }
+    updatePlayerDom();
+  }
+  if(remainingMs<=0){
+    clearTick();
+    player.running=false;
+    beep(1200,260,0.18);
+    vibrate([120,60,120]);
+    advanceAfterCountdown();
+  }
+}
+
+function pausePlayer(){
+  if(!player.running) return;
+  player.running=false;
+  player.remaining = Math.max(0, Math.ceil((player.endAt-Date.now())/1000));
+  clearTick();
+  render();
+}
+function resumePlayer(){
+  if(player.running) return;
+  if(player.remaining==null) return;
+  player.running=true;
+  player.endAt = Date.now() + player.remaining*1000;
+  clearTick();
+  player.intervalId = setInterval(tick,200);
+  render();
+}
+function resetPlayerPhase(){
+  clearTick();
+  const st = currentStep();
+  if(player.phase==='work' && st.exo.type==='time'){
+    startCountdown(st.exo.val);
+  } else if(player.phase==='rest'){
+    startCountdown(player.restDuration);
+  }
+}
+
+function adjustRest(delta){
+  if(player.phase!=='rest') return;
+  const remainingMs = player.running ? (player.endAt-Date.now()) : player.remaining*1000;
+  const newRemaining = Math.max(5, Math.round(remainingMs/1000)+delta);
+  player.remaining = newRemaining;
+  if(player.running){ player.endAt = Date.now()+newRemaining*1000; }
+  render();
+}
+
+function completeRepsSet(){
+  clearTick();
+  beep(1200,220,0.18);
+  vibrate(80);
+  goToRestOrNext();
+}
+
+function skipCurrent(){
+  clearTick();
+  if(player.phase==='work'){ goToRestOrNext(); }
+  else { goToNextStep(); }
+}
+
+function advanceAfterCountdown(){
+  if(player.phase==='work'){ goToRestOrNext(); }
+  else if(player.phase==='rest'){ goToNextStep(); }
+}
+
+function goToRestOrNext(){
+  const isLastStep = player.stepIdx === player.steps.length-1;
+  if(isLastStep){
+    finishSession();
+    return;
+  }
+  const st = currentStep();
+  const next = player.steps[player.stepIdx+1];
+  const restLen = (next.exoIndex !== st.exoIndex) ? (player.session.restBetween ?? 30) : st.exo.rest;
+  player.phase = 'rest';
+  player.restDuration = restLen;
+  startCountdown(restLen);
+}
+
+function goToNextStep(){
+  player.stepIdx++;
+  if(player.stepIdx >= player.steps.length){ finishSession(); return; }
+  player.phase='work';
+  const st = currentStep();
+  if(st.exo.type==='time'){ startCountdown(st.exo.val); }
+  else { player.remaining=null; player.running=false; clearTick(); render(); }
+}
+
+function finishSession(){
+  clearTick();
+  player.phase='review';
+  player.review = player.session.exos.map(e=>({completed:true, actualSets:e.sets, actualVal:e.val}));
+  beep(660,150,0.15); setTimeout(()=>beep(880,150,0.15),160); setTimeout(()=>beep(1100,220,0.18),320);
+  vibrate([100,50,100,50,150]);
+  render();
+}
+
+function saveReview(){
+  const s = player.session;
+  const entry = {
+    id: 'log_'+Date.now(),
+    sessionName: s.name,
+    dateISO: new Date().toISOString(),
+    exercises: s.exos.map((e,i)=>{
+      const ans = player.review[i];
+      return {
+        name:e.name, icon:e.icon, type:e.type,
+        plannedSets:e.sets, plannedVal:e.val,
+        completed: ans.completed,
+        actualSets: ans.completed ? e.sets : Math.max(0, parseInt(ans.actualSets)||0),
+        actualVal: ans.completed ? e.val : Math.max(0, parseInt(ans.actualVal)||0)
+      };
+    })
+  };
+  logs.push(entry);
+  saveLogs(logs);
+  exitPlayer();
+  toast('Séance enregistrée dans ton suivi ✓');
+}
+
+function exitPlayer(){
+  clearTick();
+  player=null;
+  view='home';
+  render();
+}
+
+function renderReviewExo(e,i){
+  const ans = player.review[i];
+  const unit = e.type==='time' ? 's' : '';
+  return `<div class="card tight" style="margin-bottom:10px;">
+    <div class="row between">
+      <b>${e.icon} ${escapeHtml(e.name)}</b>
+      <span class="pill">Objectif ${e.sets}×${e.val}${unit}</span>
+    </div>
+    <div class="row" style="margin-top:10px;gap:8px;">
+      <button class="btn sm ${ans.completed?'accent':'ghost'}" data-review-done="${i}" data-val="1">✓ Réussi</button>
+      <button class="btn sm ${!ans.completed?'danger':'ghost'}" data-review-done="${i}" data-val="0">✕ Pas complet</button>
+    </div>
+    ${!ans.completed ? `
+    <div class="row" style="margin-top:10px;gap:10px;">
+      <label class="field" style="flex:1;margin-bottom:0;"><span>Séries réussies</span>
+        <input type="number" min="0" data-review-field="sets" data-i="${i}" value="${ans.actualSets}">
+      </label>
+      <label class="field" style="flex:1;margin-bottom:0;"><span>${e.type==='time'?'Temps max (s)':'Reps max'}</span>
+        <input type="number" min="0" data-review-field="val" data-i="${i}" value="${ans.actualVal}">
+      </label>
+    </div>` : ''}
+  </div>`;
+}
+
+function renderPlayer(){
+  const s = player.session;
+  if(player.phase==='review'){
+    return `<div class="player" style="text-align:left;padding-top:10px;">
+      <div class="big-emoji" style="text-align:center;">🎉</div>
+      <h1 style="text-align:center;">Séance terminée !</h1>
+      <p style="text-align:center;margin-bottom:20px;">${escapeHtml(s.name)} — comment ça s'est passé ?</p>
+      ${s.exos.map((e,i)=>renderReviewExo(e,i)).join('')}
+      <div class="row" style="margin-top:6px;gap:10px;">
+        <button class="btn ghost block" data-action="skipReview">Ignorer</button>
+        <button class="btn primary block" data-action="saveReview">💾 Enregistrer dans mon suivi</button>
+      </div>
+    </div>`;
+  }
+  const st = currentStep();
+  const totalSteps = player.steps.length;
+  const progressPct = Math.round((player.stepIdx/totalSteps)*100);
+  const nextStep = player.steps[player.stepIdx+1];
+  let nextLabel = '';
+  if(player.phase==='rest'){
+    if(nextStep){
+      const isNewExo = nextStep.exoIndex !== st.exoIndex;
+      nextLabel = isNewExo ? `Prochain : <b>${nextStep.exo.icon} ${escapeHtml(nextStep.exo.name)}</b>` : `Série suivante : <b>${nextStep.exo.icon} ${escapeHtml(nextStep.exo.name)}</b>`;
+    } else {
+      nextLabel = `Dernière ligne droite ✨`;
+    }
+  }
+
+  let centerHtml = '';
+  let controlsHtml = '';
+
+  if(player.phase==='work'){
+    if(st.exo.type==='time'){
+      centerHtml = `<div class="big-emoji">${st.exo.icon}</div><div class="timer glow-work">${formatTime(player.remaining)}</div>`;
+      controlsHtml = `
+        <div class="controls">
+          ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">▶ Reprendre</button>`}
+          <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
+          <button class="btn ghost" data-action="skip">⏭ Passer</button>
+        </div>`;
+    } else {
+      centerHtml = `<div class="big-emoji">${st.exo.icon}</div><div class="reps-target">${st.exo.val} <span>reps</span></div>`;
+      controlsHtml = `
+        <div class="controls">
+          <button class="btn primary" data-action="completeReps">✓ Série terminée</button>
+          <button class="btn ghost" data-action="skip">⏭ Passer</button>
+        </div>`;
+    }
+  } else if(player.phase==='rest'){
+    centerHtml = `<div class="big-emoji">😮‍💨</div><div class="timer glow-rest">${formatTime(player.remaining)}</div>`;
+    controlsHtml = `
+      <div class="rest-adjust">
+        <button class="btn ghost sm" data-action="restMinus">−15s</button>
+        <button class="btn ghost sm" data-action="restPlus">+15s</button>
+      </div>
+      <div class="controls">
+        ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">▶ Reprendre</button>`}
+        <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
+        <button class="btn ghost" data-action="skip">⏭ Passer le repos</button>
+      </div>`;
+  }
+
+  return `
+  <div class="player" id="playerRoot">
+    <div class="row between" style="margin-bottom:6px;">
+      <button class="icon-btn" data-action="exitPlayer">✕</button>
+      <span class="pill">${escapeHtml(s.name)}</span>
+      <span class="pill">${player.stepIdx+1}/${totalSteps}</span>
+    </div>
+    <div class="progress-outer"><div class="progress-inner" style="width:${progressPct}%"></div></div>
+    <span class="phase-tag ${player.phase}">${player.phase==='work'?'EN COURS':'REPOS'}</span>
+    <div class="exo-name">${escapeHtml(st.exo.name)}</div>
+    <div class="set-count">Série ${st.setIndex+1} / ${st.exo.sets}</div>
+    <button class="tips-btn" data-tips="${st.exo.libId}">💡 Conseils &amp; sécurité</button>
+    ${centerHtml}
+    ${controlsHtml}
+    ${nextLabel? `<div class="next-preview">${nextLabel}</div>` : ''}
+  </div>`;
+}
+
+function updatePlayerDom(){
+  const root = document.getElementById('playerRoot');
+  if(!root) return;
+  const timerEl = root.querySelector('.timer');
+  if(timerEl) timerEl.textContent = formatTime(player.remaining);
+  const progressEl = root.querySelector('.progress-inner');
+  if(progressEl) progressEl.style.width = Math.round((player.stepIdx/player.steps.length)*100)+'%';
+}
+
+function formatTime(sec){
+  sec = Math.max(0,sec|0);
+  const m = Math.floor(sec/60), s = sec%60;
+  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+/* ---------------- HELPERS ---------------- */
+function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(str){ return escapeHtml(str); }
+
+/* ---------------- EVENTS ---------------- */
+function attachEvents(){
+  const app = document.getElementById('app');
+
+  app.querySelectorAll('[data-nav]').forEach(b=>b.onclick = ()=>{
+    view = b.getAttribute('data-nav');
+    if(view==='builder' && !builderDraft) builderDraft = newDraft();
+    render();
+  });
+
+  app.querySelectorAll('[data-toggle]').forEach(b=>b.onclick = ()=>{
+    const k = b.getAttribute('data-toggle');
+    settings[k] = !settings[k];
+    saveSettings(settings);
+    render();
+  });
+
+  app.querySelectorAll('[data-start-session]').forEach(b=>b.onclick = ()=>startSession(parseInt(b.getAttribute('data-start-session'))));
+  app.querySelectorAll('[data-del-session]').forEach(b=>b.onclick = ()=>{
+    const i = parseInt(b.getAttribute('data-del-session'));
+    if(confirm('Supprimer la séance "'+sessions[i].name+'" ?')){
+      sessions.splice(i,1); saveSessions(sessions); render();
+    }
+  });
+  app.querySelectorAll('[data-edit-session]').forEach(b=>b.onclick = ()=>{
+    const i = parseInt(b.getAttribute('data-edit-session'));
+    builderDraft = JSON.parse(JSON.stringify(sessions[i]));
+    builderDraft._editIndex = i;
+    view='builder'; render();
+  });
+
+  const nameInput = document.getElementById('sessionName');
+  if(nameInput) nameInput.oninput = e=>{ builderDraft.name = e.target.value; };
+  const restInput = document.getElementById('restBetween');
+  if(restInput) restInput.oninput = e=>{ builderDraft.restBetween = parseInt(e.target.value)||0; };
+
+  app.querySelectorAll('[data-stepper]').forEach(b=>b.onclick = ()=>{
+    const field = b.getAttribute('data-stepper');
+    const i = parseInt(b.getAttribute('data-i'));
+    const d = parseInt(b.getAttribute('data-d'));
+    const e = builderDraft.exos[i];
+    if(field==='sets') e.sets = Math.max(1, e.sets+d);
+    if(field==='val') e.val = Math.max(e.type==='time'?5:1, e.val+d);
+    render();
+  });
+  app.querySelectorAll('[data-remove-exo]').forEach(b=>b.onclick = ()=>{
+    const i = parseInt(b.getAttribute('data-remove-exo'));
+    builderDraft.exos.splice(i,1); render();
+  });
+
+  const actionMap = {
+    openAddExo: ()=>{ sheet={type:'addExo'}; render(); },
+    openCustomExo: ()=>{ sheet={type:'customExo'}; render(); },
+    openEquipment: ()=>{ sheet={type:'equipment'}; render(); },
+    openExport: ()=>{ sheet={type:'export'}; render(); },
+    openImport: ()=>{ sheet={type:'import'}; render(); },
+    copyExport: ()=>{
+      const ta = document.getElementById('exportArea');
+      if(!ta) return;
+      ta.select(); ta.setSelectionRange(0, 999999);
+      try{
+        navigator.clipboard.writeText(ta.value)
+          .then(()=>toast('Copié dans le presse-papiers ✓'))
+          .catch(()=>toast('Copie impossible ici : sélectionne le texte et fais Ctrl+C.'));
+      }catch(e){ toast('Copie impossible ici : sélectionne le texte et fais Ctrl+C.'); }
+    },
+    doImport: ()=>{
+      const ta = document.getElementById('importArea');
+      const raw = ta ? ta.value.trim() : '';
+      if(!raw){ toast("Colle d'abord un texte exporté."); return; }
+      let data;
+      try{ data = JSON.parse(raw); }catch(e){ toast('Texte invalide : vérifie que tu as bien tout copié.'); return; }
+      if(!data || typeof data!=='object'){ toast('Format invalide.'); return; }
+      if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
+      if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
+      if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
+      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true}, data.settings); saveSettings(settings); }
+      if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
+      if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
+      sheet=null; view='home'; toast('Données importées ✓'); render();
+    },
+    closeSheet: ()=>{ sheet=null; render(); },
+    newSession: ()=>{ builderDraft = newDraft(); view='builder'; render(); },
+    cancelBuilder: ()=>{ builderDraft=null; view='home'; render(); },
+    saveSession: ()=>{
+      if(!builderDraft.name.trim()) builderDraft.name='Séance sans nom';
+      if(builderDraft._editIndex!=null){
+        sessions[builderDraft._editIndex] = builderDraft;
+        delete sessions[builderDraft._editIndex]._editIndex;
+      } else {
+        sessions.push(builderDraft);
+      }
+      saveSessions(sessions);
+      builderDraft=null; view='home'; toast('Séance enregistrée ✓'); render();
+    },
+    saveCustomExo: ()=>{
+      const name = document.getElementById('customName').value.trim();
+      if(!name){ toast('Donne un nom à ton exercice.'); return; }
+      const type = document.getElementById('customType').value;
+      const cat = document.getElementById('customCat').value;
+      const id = 'custom_'+Date.now();
+      customExos.push({id, name, cat, type, icon:'⭐', sets:3, val: type==='time'?30:12, rest:45, custom:true});
+      saveCustomExos(customExos);
+      sheet=null; toast('Exercice créé ✓'); render();
+    },
+    pause: pausePlayer,
+    resume: resumePlayer,
+    resetPhase: resetPlayerPhase,
+    skip: skipCurrent,
+    completeReps: completeRepsSet,
+    restMinus: ()=>adjustRest(-15),
+    restPlus: ()=>adjustRest(15),
+    saveReview: saveReview,
+    skipReview: exitPlayer,
+    clearLogs: ()=>{
+      if(confirm('Effacer tout l\'historique de suivi ?')){ logs=[]; saveLogs(logs); render(); }
+    },
+    exitPlayer: ()=>{
+      if(player.phase==='review' || confirm('Quitter la séance en cours ?')) exitPlayer();
+    }
+  };
+  app.querySelectorAll('[data-action]').forEach(b=>{
+    const key = b.getAttribute('data-action');
+    if(actionMap[key]) b.onclick = actionMap[key];
+  });
+
+  app.querySelectorAll('[data-tips]').forEach(b=>b.onclick = (ev)=>{
+    ev.stopPropagation();
+    sheet = {type:'tips', exoId:b.getAttribute('data-tips')};
+    render();
+  });
+
+  app.querySelectorAll('[data-toggle-equip]').forEach(b=>b.onclick = ()=>{
+    const key = b.getAttribute('data-toggle-equip');
+    equipment[key] = !equipment[key];
+    saveEquipment(equipment);
+    render();
+  });
+
+  app.querySelectorAll('[data-review-done]').forEach(b=>b.onclick = ()=>{
+    const i = parseInt(b.getAttribute('data-review-done'));
+    player.review[i].completed = b.getAttribute('data-val')==='1';
+    render();
+  });
+  app.querySelectorAll('[data-review-field]').forEach(inp=>inp.oninput = ()=>{
+    const i = parseInt(inp.getAttribute('data-i'));
+    const field = inp.getAttribute('data-review-field');
+    if(field==='sets') player.review[i].actualSets = inp.value;
+    else player.review[i].actualVal = inp.value;
+  });
+  app.querySelectorAll('[data-del-log]').forEach(b=>b.onclick = ()=>{
+    const i = parseInt(b.getAttribute('data-del-log'));
+    if(confirm('Supprimer cette séance de ton suivi ?')){
+      logs.splice(i,1); saveLogs(logs); render();
+    }
+  });
+
+  app.querySelectorAll('[data-pick-exo]').forEach(b=>b.onclick = ()=>{
+    const id = b.getAttribute('data-pick-exo');
+    const e = allExoLibrary().find(x=>x.id===id);
+    builderDraft.exos.push({libId:e.id, name:e.name, icon:e.icon, type:e.type, sets:e.sets, val:e.val, rest:e.rest});
+    sheet=null; render();
+  });
+  app.querySelectorAll('[data-del-custom]').forEach(b=>b.onclick = (ev)=>{
+    ev.stopPropagation();
+    const id = b.getAttribute('data-del-custom');
+    customExos = customExos.filter(x=>x.id!==id);
+    saveCustomExos(customExos); render();
+  });
+
+  const overlay = app.querySelector('[data-close-sheet]');
+  if(overlay) overlay.onclick = (e)=>{ if(e.target===overlay){ sheet=null; render(); } };
+}
+
+render();
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+</script>
+</body>
+</html>
