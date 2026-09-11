@@ -11,24 +11,25 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   /*
-   * Material 3 tonal palette — seed hue: green/teal. The accent roles
-   * (primary/tertiary/error) stay constant across themes, same as the
-   * base app's orange/teal — only the neutral surface tokens swap
+   * Material 3 tonal palette — seed hue: the app's own orange/teal
+   * brand colors (same as the base app), just carried as M3 roles
+   * instead of gradients. The accent roles (primary/tertiary/error)
+   * stay constant across themes — only the neutral surface tokens swap
    * between light (bare :root, default) and dark (prefers-color-scheme
    * for "system", [data-theme="dark"] for an explicit choice, so both
    * directions of the toggle win over "system").
    * --accent/--accent2/etc. are kept as the names the rest of the app
-   * already renders with, so a native "dynamic color" plugin can
+   * already renders with, so a native "dynamic color" plugin can still
    * override them at runtime from the wallpaper's colors (dark scheme
    * only — see initDynamicTheme()).
    */
   :root{
-    --md-primary:#a6d388;             --md-on-primary:#17390a;
-    --md-primary-container:#2d4f1c;   --md-on-primary-container:#c2efa4;
-    --md-tertiary:#a0cfd6;            --md-on-tertiary:#00373a;
-    --md-tertiary-container:#1f4e51;  --md-on-tertiary-container:#bcebf2;
-    --md-error:#ffb4ab;               --md-on-error:#690005;
-    --md-error-container:#93000a;     --md-on-error-container:#ffdad6;
+    --md-primary:#ff7a45;             --md-on-primary:#1a0d05;
+    --md-primary-container:#5c2a0f;   --md-on-primary-container:#ffdbc7;
+    --md-tertiary:#22c3a6;            --md-on-tertiary:#04241d;
+    --md-tertiary-container:#0d3f34;  --md-on-tertiary-container:#bdf2e6;
+    --md-error:#ff5566;               --md-on-error:#2c0002;
+    --md-error-container:#63000a;     --md-on-error-container:#ffd9d9;
 
     --md-surface:#fbfbf3;
     --md-surface-container-low:#f5f4ec;
