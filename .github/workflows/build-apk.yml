@@ -52,8 +52,13 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
+      - name: Restore signing keystore from secret
+        run: echo "${{ secrets.CALISTHENIE_KEYSTORE_BASE64 }}" | base64 -d > android/calisthenie.keystore
+
       - name: Build debug APK
         working-directory: android
+        env:
+          CALISTHENIE_KEYSTORE_PASSWORD: ${{ secrets.CALISTHENIE_KEYSTORE_PASSWORD }}
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Rename APK

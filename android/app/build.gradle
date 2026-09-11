@@ -16,8 +16,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        // Stable key so every CI-built APK carries the same signature and
+        // installs as an update over the previous one instead of Android
+        // requiring an uninstall (and losing app data) on every release.
+        // Password comes from the CI environment (GitHub Actions secret),
+        // never committed — see .github/workflows/build-apk.yml.
+        stable {
+            storeFile file("../calisthenie.keystore")
+            storePassword System.getenv("CALISTHENIE_KEYSTORE_PASSWORD") ?: "changeit"
+            keyAlias "calisthenie"
+            keyPassword System.getenv("CALISTHENIE_KEYSTORE_PASSWORD") ?: "changeit"
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.stable
+        }
         release {
+            signingConfig signingConfigs.stable
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
