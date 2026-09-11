@@ -429,6 +429,15 @@ let builderDraft = null; // session being built
 let editingIndex = null; // index of exo being edited in a sheet
 let sheet = null; // {type:'addExo'|'editExo'|'tips'|'equipment', ...}
 let player = null; // player state
+let updateState = { status:'idle', info:null, error:null }; // idle | checking | upToDate | available | downloading | error
+
+function isNativeApp(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+function callAppUpdater(method, options){
+  if(!isNativeApp() || !window.Capacitor.nativePromise) return Promise.reject(new Error('Indisponible hors application native.'));
+  return window.Capacitor.nativePromise('AppUpdater', method, options||{});
+}
 
 function allExoLibrary(){ return EXO_LIB.concat(customExos); }
 function hasEquipment(exo){ return !exo.equip || !!equipment[exo.equip]; }
@@ -552,6 +561,7 @@ function renderHome(){
       <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
       <button class="btn sm ghost" data-action="openExport">📤 Export</button>
       <button class="btn sm ghost" data-action="openImport">📥 Import</button>
+      ${isNativeApp() ? `<button class="btn sm ghost" data-action="openUpdate">🔄 Mise à jour</button>` : ''}
     </div>
   </div>`;
 }
@@ -807,6 +817,31 @@ function renderSheet(){
         <button class="btn ghost block" data-action="closeSheet">Annuler</button>
         <button class="btn primary block" data-action="doImport">📥 Importer</button>
       </div>
+    </div></div>`;
+  }
+  if(sheet.type==='update'){
+    let body = '';
+    if(updateState.status==='idle'){
+      body = `<p>Vérifie si une nouvelle version de l'application est disponible.</p>
+        <button class="btn primary block" style="margin-top:12px;" data-action="checkUpdate">🔍 Vérifier les mises à jour</button>`;
+    } else if(updateState.status==='checking'){
+      body = `<p>Recherche d'une mise à jour…</p>`;
+    } else if(updateState.status==='upToDate'){
+      body = `<p>✅ Tu as déjà la dernière version.</p>
+        <button class="btn ghost block" style="margin-top:12px;" data-action="checkUpdate">🔍 Revérifier</button>`;
+    } else if(updateState.status==='available'){
+      body = `<p>🎉 Une nouvelle version est disponible.</p>
+        <button class="btn primary block" style="margin-top:12px;" data-action="installUpdate">⬇️ Télécharger et installer</button>`;
+    } else if(updateState.status==='downloading'){
+      body = `<p>Téléchargement de la mise à jour… L'installation démarrera automatiquement.</p>`;
+    } else if(updateState.status==='error'){
+      body = `<p>⚠️ ${escapeHtml(updateState.error||'Une erreur est survenue.')}</p>
+        <button class="btn ghost block" style="margin-top:12px;" data-action="checkUpdate">🔍 Réessayer</button>`;
+    }
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+      <h3>🔄 Mise à jour</h3>
+      ${body}
+      <button class="btn ghost block" style="margin-top:18px;" data-action="closeSheet">Fermer</button>
     </div></div>`;
   }
   return '';
@@ -1169,6 +1204,26 @@ function attachEvents(){
     openEquipment: ()=>{ sheet={type:'equipment'}; render(); },
     openExport: ()=>{ sheet={type:'export'}; render(); },
     openImport: ()=>{ sheet={type:'import'}; render(); },
+    openUpdate: ()=>{ sheet={type:'update'}; updateState={status:'idle', info:null, error:null}; render(); },
+    checkUpdate: ()=>{
+      updateState={status:'checking', info:null, error:null}; render();
+      callAppUpdater('checkForUpdate').then(res=>{
+        if(res && res.available){ updateState={status:'available', info:res, error:null}; }
+        else{ updateState={status:'upToDate', info:res, error:null}; }
+        render();
+      }).catch(err=>{
+        updateState={status:'error', info:null, error:(err && err.message) || String(err) || 'Vérification impossible.'};
+        render();
+      });
+    },
+    installUpdate: ()=>{
+      if(!updateState.info){ updateState={status:'error', error:'Mise à jour indisponible.'}; render(); return; }
+      updateState={status:'downloading', info:updateState.info, error:null}; render();
+      callAppUpdater('downloadAndInstall', { url: updateState.info.downloadUrl, releaseId: updateState.info.releaseId }).catch(err=>{
+        updateState={status:'error', info:null, error:(err && err.message) || String(err) || 'Téléchargement impossible.'};
+        render();
+      });
+    },
     copyExport: ()=>{
       const ta = document.getElementById('exportArea');
       if(!ta) return;
