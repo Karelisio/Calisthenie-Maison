@@ -31,7 +31,7 @@ import java.net.URL;
 public class AppUpdaterPlugin extends Plugin {
 
     private static final String RELEASE_API_URL =
-        "https://api.github.com/repos/Karelisio/Calisthenie-Maison/releases/tags/apk-latest";
+        "https://api.github.com/repos/Karelisio/Calisthenie-Maison/releases/tags/apk-material-latest";
     private static final String PREFS = "app_updater";
     private static final String PREF_RELEASE_ID = "installed_release_id";
 
