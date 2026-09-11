@@ -11,23 +11,25 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   /*
-   * Material 3 tonal palette — seed hue: green/teal. Light values live
-   * in the bare :root (default); dark redefines only the --md-* tokens,
-   * once for the OS preference and once for an explicit user choice, so
-   * both directions of the light/dark toggle win over "system".
+   * Material 3 tonal palette — seed hue: green/teal. The accent roles
+   * (primary/tertiary/error) stay constant across themes, same as the
+   * base app's orange/teal — only the neutral surface tokens swap
+   * between light (bare :root, default) and dark (prefers-color-scheme
+   * for "system", [data-theme="dark"] for an explicit choice, so both
+   * directions of the toggle win over "system").
    * --accent/--accent2/etc. are kept as the names the rest of the app
-   * already renders with; only their values move to M3 roles so a
-   * native "dynamic color" plugin can override them at runtime by
-   * setting these same custom properties from the wallpaper's colors
-   * (dark scheme only — see initDynamicTheme()).
+   * already renders with, so a native "dynamic color" plugin can
+   * override them at runtime from the wallpaper's colors (dark scheme
+   * only — see initDynamicTheme()).
    */
   :root{
-    --md-primary:#3c6b2c;              --md-on-primary:#ffffff;
-    --md-primary-container:#bdf0a0;    --md-on-primary-container:#0b2500;
-    --md-tertiary:#2f6367;             --md-on-tertiary:#ffffff;
-    --md-tertiary-container:#bcebf0;   --md-on-tertiary-container:#001f21;
-    --md-error:#ba1a1a;                --md-on-error:#ffffff;
-    --md-error-container:#ffdad6;      --md-on-error-container:#410002;
+    --md-primary:#a6d388;             --md-on-primary:#17390a;
+    --md-primary-container:#2d4f1c;   --md-on-primary-container:#c2efa4;
+    --md-tertiary:#a0cfd6;            --md-on-tertiary:#00373a;
+    --md-tertiary-container:#1f4e51;  --md-on-tertiary-container:#bcebf2;
+    --md-error:#ffb4ab;               --md-on-error:#690005;
+    --md-error-container:#93000a;     --md-on-error-container:#ffdad6;
+
     --md-surface:#fbfbf3;
     --md-surface-container-low:#f5f4ec;
     --md-surface-container:#eff0e6;
@@ -60,12 +62,6 @@
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --md-primary:#a6d388;             --md-on-primary:#17390a;
-      --md-primary-container:#2d4f1c;   --md-on-primary-container:#c2efa4;
-      --md-tertiary:#a0cfd6;            --md-on-tertiary:#00373a;
-      --md-tertiary-container:#1f4e51;  --md-on-tertiary-container:#bcebf2;
-      --md-error:#ffb4ab;               --md-on-error:#690005;
-      --md-error-container:#93000a;     --md-on-error-container:#ffdad6;
       --md-surface:#12140f;
       --md-surface-container-low:#1a1c16;
       --md-surface-container:#1e2018;
@@ -79,12 +75,6 @@
     }
   }
   :root[data-theme="dark"]{
-    --md-primary:#a6d388;             --md-on-primary:#17390a;
-    --md-primary-container:#2d4f1c;   --md-on-primary-container:#c2efa4;
-    --md-tertiary:#a0cfd6;            --md-on-tertiary:#00373a;
-    --md-tertiary-container:#1f4e51;  --md-on-tertiary-container:#bcebf2;
-    --md-error:#ffb4ab;               --md-on-error:#690005;
-    --md-error-container:#93000a;     --md-on-error-container:#ffdad6;
     --md-surface:#12140f;
     --md-surface-container-low:#1a1c16;
     --md-surface-container:#1e2018;
