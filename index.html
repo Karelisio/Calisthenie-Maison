@@ -196,162 +196,162 @@
 
 /* ---------------- DATA ---------------- */
 const EXO_LIB = [
- {id:'pushup', name:'Pompes', cat:'Haut du corps – Push', icon:'💪', type:'reps', sets:3, val:12, rest:60, tips:[
+ {id:'pushup', name:'Pompes', cat:'Haut du corps – Push', icon:'💪', type:'reps', sets:3, val:12, rest:60, muscles:['Pectoraux','Triceps','Épaules'], tips:[
    "Aligne tête, bassin et talons en une ligne droite, gainage abdominal actif.",
    "Coudes à environ 45° du buste (pas écartés à 90°) pour protéger les épaules.",
    "Descends jusqu'à effleurer le sol avec la poitrine, remonte sans bloquer les coudes en extension."]},
- {id:'pushup_diamond', name:'Pompes diamant', cat:'Haut du corps – Push', icon:'💎', type:'reps', sets:3, val:8, rest:60, tips:[
+ {id:'pushup_diamond', name:'Pompes diamant', cat:'Haut du corps – Push', icon:'💎', type:'reps', sets:3, val:8, rest:60, muscles:['Triceps','Pectoraux','Épaules'], tips:[
    "Mains jointes sous le sternum, pouces et index qui se touchent.",
    "Coudes proches du corps, descente lente et contrôlée.",
    "Sollicite fortement les poignets : arrête si tu sens une douleur à cet endroit."]},
- {id:'pushup_incline', name:'Pompes mains surélevées', cat:'Haut du corps – Push', icon:'🔼', type:'reps', sets:3, val:15, rest:45, tips:[
+ {id:'pushup_incline', name:'Pompes mains surélevées', cat:'Haut du corps – Push', icon:'🔼', type:'reps', sets:3, val:15, rest:45, muscles:['Pectoraux','Triceps','Épaules'], tips:[
    "Mains posées sur un support stable (table, marche, canapé) plus haut que les pieds.",
    "Plus l'appui est haut, plus l'exercice est facile — idéal pour progresser en douceur.",
    "Garde le corps gainé en ligne droite, sans casser les hanches vers le bas."]},
- {id:'pike_pushup', name:'Pompes piquées (épaules)', cat:'Haut du corps – Push', icon:'🔺', type:'reps', sets:3, val:8, rest:60, tips:[
+ {id:'pike_pushup', name:'Pompes piquées (épaules)', cat:'Haut du corps – Push', icon:'🔺', type:'reps', sets:3, val:8, rest:60, muscles:['Épaules','Triceps','Trapèzes'], tips:[
    "Position en V inversé, hanches hautes, mains et pieds au sol.",
    "Plie les coudes vers l'arrière pour amener le sommet du crâne entre les mains.",
    "Regarde vers tes pieds plutôt que devant toi pour protéger la nuque."]},
- {id:'triceps_dip_air', name:'Extensions triceps au sol', cat:'Haut du corps – Push', icon:'🦾', type:'reps', sets:3, val:12, rest:45, tips:[
+ {id:'triceps_dip_air', name:'Extensions triceps au sol', cat:'Haut du corps – Push', icon:'🦾', type:'reps', sets:3, val:12, rest:45, muscles:['Triceps','Épaules'], tips:[
    "Position de pompe, coudes serrés le long du corps (pas écartés).",
    "Ne fléchis que les coudes, garde les épaules stables.",
    "Évite de creuser le bas du dos pendant le mouvement."]},
- {id:'table_row', name:'Tirage sous table (Rowing)', cat:'Haut du corps – Pull', icon:'🚣', type:'reps', sets:3, val:12, rest:60, tips:[
+ {id:'table_row', name:'Tirage sous table (Rowing)', cat:'Haut du corps – Pull', icon:'🚣', type:'reps', sets:3, val:12, rest:60, muscles:['Dos','Biceps','Avant-bras'], tips:[
    "Allonge-toi sous une table solide et stable (vérifie qu'elle ne bouge pas avant de commencer), attrape le rebord à largeur d'épaules.",
    "Corps gainé en ligne droite des talons à la tête, tire la poitrine vers la table en serrant les omoplates.",
    "Redescends lentement sans reposer complètement le dos au sol entre deux répétitions, et évite toute table pliante ou fragile."]},
- {id:'ytw_raise', name:'Y-T-W (dos & épaules)', cat:'Haut du corps – Pull', icon:'🦅', type:'reps', sets:3, val:10, rest:45, tips:[
+ {id:'ytw_raise', name:'Y-T-W (dos & épaules)', cat:'Haut du corps – Pull', icon:'🦅', type:'reps', sets:3, val:10, rest:45, muscles:['Trapèzes','Dos','Épaules'], tips:[
    "Allongé sur le ventre, lève les bras tendus en formant un Y, puis un T, puis un W, en serrant les omoplates à chaque position.",
    "Amplitude modérée : la contraction entre les omoplates compte plus que la hauteur atteinte par les bras.",
    "Garde la nuque neutre et évite de cambrer excessivement le bas du dos."]},
- {id:'towel_row_door', name:'Tirage horizontal (serviette + porte)', cat:'Haut du corps – Pull', icon:'🚪', type:'reps', sets:3, val:12, rest:60, tips:[
+ {id:'towel_row_door', name:'Tirage horizontal (serviette + porte)', cat:'Haut du corps – Pull', icon:'🚪', type:'reps', sets:3, val:12, rest:60, muscles:['Dos','Biceps','Avant-bras'], tips:[
    "Ouvre la porte à moitié, passe une serviette autour du poignet de la porte et tiens une extrémité dans chaque main de part et d'autre.",
    "Penche-toi en arrière bras tendus, puis tire ton corps vers la porte en gardant le dos droit et le gainage actif.",
    "Teste impérativement la solidité de la porte et des gonds avant de charger tout ton poids dessus."]},
- {id:'towel_pullup_door', name:'Traction verticale (serviette + porte)', cat:'Haut du corps – Pull', icon:'🧗', type:'reps', sets:3, val:6, rest:90, tips:[
+ {id:'towel_pullup_door', name:'Traction verticale (serviette + porte)', cat:'Haut du corps – Pull', icon:'🧗', type:'reps', sets:3, val:6, rest:90, muscles:['Dos','Biceps','Avant-bras'], tips:[
    "Passe la serviette par-dessus le haut du battant, idéalement près des charnières, puis ferme la porte pour la bloquer.",
    "Tiens les deux extrémités, penche-toi légèrement en arrière et tire-toi vers le haut jusqu'à ce que ton menton dépasse le niveau de la porte.",
    "Vérifie impérativement la solidité de la porte et des gonds avant de te suspendre : jamais sur une porte fragile ou mal fixée.",
    "Évite les portes intérieures creuses (la plupart des portes d'intérieur le sont) : privilégie une porte pleine/extérieure, ou utilise une vraie barre de traction si tu as un doute.",
    "Sollicite aussi fortement la force de préhension (grip) des avant-bras — normal de fatiguer vite au début."]},
- {id:'pull_up', name:'Tractions à la barre', cat:'Haut du corps – Pull', icon:'⬆️', type:'reps', sets:3, val:6, rest:90, equip:'pullupBar', tips:[
+ {id:'pull_up', name:'Tractions à la barre', cat:'Haut du corps – Pull', icon:'⬆️', type:'reps', sets:3, val:6, rest:90, equip:'pullupBar', muscles:['Dos','Biceps','Avant-bras','Épaules'], tips:[
    "Saisis la barre en pronation (paumes vers l'avant), mains un peu plus larges que les épaules.",
    "Engage les omoplates avant de tirer avec les bras, monte jusqu'à ce que le menton dépasse la barre, redescends en contrôlant le mouvement.",
    "Évite de te balancer (kipping) tant que la technique stricte n'est pas maîtrisée, pour protéger les épaules.",
    "Vérifie que la barre est solidement fixée et supporte ton poids avant de t'y suspendre."]},
- {id:'bar_dip', name:'Dips sur barre parallèles', cat:'Haut du corps – Push', icon:'↕️', type:'reps', sets:3, val:8, rest:75, equip:'dipBar', tips:[
+ {id:'bar_dip', name:'Dips sur barre parallèles', cat:'Haut du corps – Push', icon:'↕️', type:'reps', sets:3, val:8, rest:75, equip:'dipBar', muscles:['Pectoraux','Triceps','Épaules'], tips:[
    "Bras tendus au départ, corps vertical et légèrement penché en avant pour cibler les pectoraux.",
    "Descends jusqu'à ce que les épaules arrivent à hauteur des coudes environ, pas plus bas si tu manques de mobilité.",
    "Remonte en poussant sans verrouiller brutalement les coudes, gainage actif pour stabiliser le corps.",
    "Vérifie la stabilité de la barre avant de t'y suspendre en charge."]},
- {id:'chair_dip', name:'Dips sur chaise', cat:'Haut du corps – Push', icon:'⬇️', type:'reps', sets:3, val:10, rest:60, equip:'chair', tips:[
+ {id:'chair_dip', name:'Dips sur chaise', cat:'Haut du corps – Push', icon:'⬇️', type:'reps', sets:3, val:10, rest:60, equip:'chair', muscles:['Triceps','Épaules','Pectoraux'], tips:[
    "Mains sur le bord de la chaise, doigts vers l'avant, jambes tendues devant toi (ou fléchies pour plus de facilité).",
    "Descends en pliant les coudes vers l'arrière (pas sur les côtés), jusqu'à un angle d'environ 90°.",
    "Remonte en poussant sur les paumes, épaules basses loin des oreilles pour protéger les articulations.",
    "Utilise une chaise stable, qui ne glisse pas et ne bascule pas — jamais de chaise à roulettes ou pliante."]},
- {id:'squat', name:'Squats', cat:'Bas du corps', icon:'🦵', type:'reps', sets:3, val:20, rest:45, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux : il renforce l'activation des fessiers et t'aide à empêcher les genoux de rentrer vers l'intérieur.", tips:[
+ {id:'squat', name:'Squats', cat:'Bas du corps', icon:'🦵', type:'reps', sets:3, val:20, rest:45, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux : il renforce l'activation des fessiers et t'aide à empêcher les genoux de rentrer vers l'intérieur.", muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
    "Pieds largeur d'épaules, pointes légèrement ouvertes.",
    "Genoux dans l'axe des pieds : ils ne doivent pas partir vers l'intérieur.",
    "Poids réparti sur tout le pied (pas seulement les pointes), dos neutre."]},
- {id:'jump_squat', name:'Squats sautés', cat:'Bas du corps', icon:'🚀', type:'reps', sets:3, val:15, rest:60, tips:[
+ {id:'jump_squat', name:'Squats sautés', cat:'Bas du corps', icon:'🚀', type:'reps', sets:3, val:15, rest:60, muscles:['Quadriceps','Fessiers','Mollets'], tips:[
    "Même technique que le squat classique, avec une poussée explosive vers le haut.",
    "Réception souple, genoux fléchis, pieds à plat pour amortir le choc.",
    "À éviter en cas de douleur aux genoux ou aux chevilles (fort impact)."]},
- {id:'lunge', name:'Fentes avant', cat:'Bas du corps', icon:'🦿', type:'reps', sets:3, val:12, rest:45, level:'Intermédiaire', bandTip:"Place l'élastique juste au-dessus des genoux pour un travail supplémentaire de stabilité des hanches à chaque pas.", tips:[
+ {id:'lunge', name:'Fentes avant', cat:'Bas du corps', icon:'🦿', type:'reps', sets:3, val:12, rest:45, level:'Intermédiaire', bandTip:"Place l'élastique juste au-dessus des genoux pour un travail supplémentaire de stabilité des hanches à chaque pas.", muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
    "Grand pas en avant, descends jusqu'à 90° aux deux genoux.",
    "Le genou avant reste au-dessus de la cheville, jamais au-delà des orteils.",
    "Le genou arrière frôle le sol sans le percuter, remonte en poussant sur le talon avant."]},
- {id:'jump_lunge', name:'Fentes sautées', cat:'Bas du corps', icon:'⚡', type:'reps', sets:3, val:10, rest:60, tips:[
+ {id:'jump_lunge', name:'Fentes sautées', cat:'Bas du corps', icon:'⚡', type:'reps', sets:3, val:10, rest:60, muscles:['Quadriceps','Fessiers','Mollets'], tips:[
    "Alterne les jambes en l'air, réception souple et contrôlée à chaque saut.",
    "Buste droit, gainage actif pour garder l'équilibre.",
    "Impact élevé sur les genoux et chevilles : à réduire en cas de gêne articulaire."]},
- {id:'glute_bridge', name:'Pont fessier', cat:'Bas du corps', icon:'🌉', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux pour augmenter l'activation des fessiers moyens en plus des grands fessiers.", tips:[
+ {id:'glute_bridge', name:'Pont fessier', cat:'Bas du corps', icon:'🌉', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux pour augmenter l'activation des fessiers moyens en plus des grands fessiers.", muscles:['Fessiers','Ischio-jambiers','Lombaires'], tips:[
    "Allongé, pieds à plat proches des fessiers, pousse en appuyant sur les talons.",
    "Contracte les fessiers en haut du mouvement, sans cambrer excessivement le bas du dos.",
    "Monte et descends lentement, sans à-coups."]},
- {id:'bench_hip_thrust', name:'Hip Thrust (banc)', cat:'Bas du corps', icon:'🛋️', type:'reps', sets:3, val:15, rest:45, equip:'bench', level:'Intermédiaire', bandTip:"Place l'élastique juste au-dessus des genoux pour ajouter un travail des fessiers moyens à l'extension de hanche.", tips:[
+ {id:'bench_hip_thrust', name:'Hip Thrust (banc)', cat:'Bas du corps', icon:'🛋️', type:'reps', sets:3, val:15, rest:45, equip:'bench', level:'Intermédiaire', bandTip:"Place l'élastique juste au-dessus des genoux pour ajouter un travail des fessiers moyens à l'extension de hanche.", muscles:['Fessiers','Ischio-jambiers'], tips:[
    "Haut du dos calé sur le bord d'un banc stable, pieds à plat au sol, genoux fléchis à 90°.",
    "Pousse à travers les talons pour lever les hanches, contraction maximale des fessiers en haut du mouvement.",
    "Redescends sans reposer complètement les fessiers au sol entre les répétitions, menton légèrement rentré.",
    "Vérifie que le banc est stable et ne peut pas glisser avant de commencer."]},
- {id:'calf_raise', name:'Montées sur pointes', cat:'Bas du corps', icon:'🩰', type:'reps', sets:3, val:20, rest:30, tips:[
+ {id:'calf_raise', name:'Montées sur pointes', cat:'Bas du corps', icon:'🩰', type:'reps', sets:3, val:20, rest:30, muscles:['Mollets'], tips:[
    "Monte sur la pointe des pieds, marque une pause, redescends lentement.",
    "Jambes tendues sans verrouiller les genoux en extension complète.",
    "Prends appui sur un mur ou une chaise si l'équilibre est difficile."]},
- {id:'wall_sit', name:'Chaise (Wall sit)', cat:'Bas du corps', icon:'🪑', type:'time', sets:3, val:45, rest:45, tips:[
+ {id:'wall_sit', name:'Chaise (Wall sit)', cat:'Bas du corps', icon:'🪑', type:'time', sets:3, val:45, rest:45, muscles:['Quadriceps'], tips:[
    "Dos entièrement plaqué contre un mur, cuisses parallèles au sol.",
    "Genoux alignés avec les chevilles, jamais au-delà des orteils.",
    "Respire normalement tout au long de la position, ne bloque pas ta respiration."]},
- {id:'hip_abduction', name:'Abduction hanche', cat:'Bas du corps', icon:'🦩', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Ajoute l'élastique au-dessus des genoux ou autour des chevilles pour plus de résistance sur tout le mouvement.", tips:[
+ {id:'hip_abduction', name:'Abduction hanche', cat:'Bas du corps', icon:'🦩', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Ajoute l'élastique au-dessus des genoux ou autour des chevilles pour plus de résistance sur tout le mouvement.", muscles:['Fessiers (moyen)','Hanches'], tips:[
    "Allongé sur le côté, jambes tendues et légèrement avancées devant le buste pour plus de stabilité.",
    "Lève la jambe du dessus vers le plafond sans faire rouler le bassin vers l'arrière.",
    "Redescends lentement sans reposer complètement la jambe, garde le tronc gainé."]},
- {id:'frog_pump', name:'Frog Pump', cat:'Bas du corps', icon:'🐸', type:'reps', sets:3, val:20, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux pour intensifier la contraction fessière en haut du mouvement.", tips:[
+ {id:'frog_pump', name:'Frog Pump', cat:'Bas du corps', icon:'🐸', type:'reps', sets:3, val:20, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux pour intensifier la contraction fessière en haut du mouvement.", muscles:['Fessiers'], tips:[
    "Allongé sur le dos, plantes de pieds jointes, genoux ouverts vers l'extérieur.",
    "Pousse le bassin vers le plafond en contractant fort les fessiers, sans forcer sur le bas du dos.",
    "Amplitude courte et contrôlée : la contraction compte plus que la hauteur."]},
- {id:'standing_kickback', name:'Kick Back debout', cat:'Bas du corps', icon:'🍑', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des chevilles pour une résistance constante sur toute l'amplitude du mouvement.", tips:[
+ {id:'standing_kickback', name:'Kick Back debout', cat:'Bas du corps', icon:'🍑', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des chevilles pour une résistance constante sur toute l'amplitude du mouvement.", muscles:['Fessiers'], tips:[
    "Debout, mains posées sur un support stable (chaise, mur) pour l'équilibre, jambe d'appui légèrement fléchie.",
    "Pousse une jambe tendue vers l'arrière en contractant le fessier, sans te pencher en avant ni cambrer le bas du dos.",
    "Redescends lentement sans reposer le pied au sol entre les répétitions, garde le bassin stable et gainé."]},
- {id:'standing_abduction', name:'Abduction debout', cat:'Bas du corps', icon:'➡️', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique au-dessus des genoux ou des chevilles pour renforcer le travail des fessiers moyens.", tips:[
+ {id:'standing_abduction', name:'Abduction debout', cat:'Bas du corps', icon:'➡️', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique au-dessus des genoux ou des chevilles pour renforcer le travail des fessiers moyens.", muscles:['Fessiers (moyen)','Hanches'], tips:[
    "Debout, appui sur un support stable, jambe d'appui légèrement fléchie, buste droit.",
    "Lève l'autre jambe tendue sur le côté sans faire basculer le bassin ni te pencher du côté opposé.",
    "Redescends lentement sans reposer le pied, garde les hanches face à l'avant tout du long."]},
- {id:'standing_combo', name:'Kick Back + Abduction debout', cat:'Bas du corps', icon:'🔀', type:'reps', sets:3, val:12, rest:30, level:'Intermédiaire', bandTip:"Un seul élastique aux chevilles suffit pour intensifier les deux mouvements de l'enchaînement.", tips:[
+ {id:'standing_combo', name:'Kick Back + Abduction debout', cat:'Bas du corps', icon:'🔀', type:'reps', sets:3, val:12, rest:30, level:'Intermédiaire', bandTip:"Un seul élastique aux chevilles suffit pour intensifier les deux mouvements de l'enchaînement.", muscles:['Fessiers','Hanches'], tips:[
    "Sur une même jambe : pousse-la tendue vers l'arrière (kick back) puis ramène-la sur le côté (abduction), sans reposer le pied entre les deux.",
    "Garde le bassin stable et gainé pendant tout l'enchaînement, sans te pencher d'un côté ni cambrer le dos.",
    "Termine toutes les répétitions d'un côté avant de changer de jambe, mouvement lent pour bien isoler le fessier plutôt que d'aller vite."]},
- {id:'plank', name:'Gainage (Planche)', cat:'Abdos / Core', icon:'🧘', type:'time', sets:3, val:40, rest:30, tips:[
+ {id:'plank', name:'Gainage (Planche)', cat:'Abdos / Core', icon:'🧘', type:'time', sets:3, val:40, rest:30, muscles:['Abdominaux','Lombaires','Épaules'], tips:[
    "Avant-bras et pointes de pieds au sol, corps aligné de la tête aux talons.",
    "Gainage abdominal et fessiers actifs : les hanches ne doivent ni tomber ni trop monter.",
    "Nuque relâchée, regard légèrement devant toi plutôt que vers le bas."]},
- {id:'side_plank', name:'Gainage latéral', cat:'Abdos / Core', icon:'↔️', type:'time', sets:2, val:30, rest:30, tips:[
+ {id:'side_plank', name:'Gainage latéral', cat:'Abdos / Core', icon:'↔️', type:'time', sets:2, val:30, rest:30, muscles:['Obliques','Épaules'], tips:[
    "Appui sur un avant-bras, corps en ligne droite de la tête aux pieds.",
    "Hanches hautes et stables, ne les laisse pas s'affaisser vers le sol.",
    "Empile les pieds ou décale légèrement le pied du dessus pour l'équilibre."]},
- {id:'crunch', name:'Crunchs', cat:'Abdos / Core', icon:'🔥', type:'reps', sets:3, val:20, rest:30, tips:[
+ {id:'crunch', name:'Crunchs', cat:'Abdos / Core', icon:'🔥', type:'reps', sets:3, val:20, rest:30, muscles:['Abdominaux'], tips:[
    "Genoux fléchis, pieds au sol, mains soutenant légèrement la tête sans tirer sur la nuque.",
    "Décolle uniquement les omoplates du sol, contraction abdominale.",
    "Mouvement lent et contrôlé, expire en montant."]},
- {id:'leg_raise', name:'Relevés de jambes', cat:'Abdos / Core', icon:'📐', type:'reps', sets:3, val:15, rest:30, tips:[
+ {id:'leg_raise', name:'Relevés de jambes', cat:'Abdos / Core', icon:'📐', type:'reps', sets:3, val:15, rest:30, muscles:['Abdominaux','Fléchisseurs de hanche'], tips:[
    "Allongé sur le dos, contracte les abdos pour garder le bas du dos plaqué au sol.",
    "Jambes tendues ou légèrement fléchies, montée et descente contrôlées.",
    "Ne laisse jamais les jambes retomber brusquement au sol."]},
- {id:'superman', name:'Superman', cat:'Abdos / Core', icon:'🦸', type:'reps', sets:3, val:15, rest:30, tips:[
+ {id:'superman', name:'Superman', cat:'Abdos / Core', icon:'🦸', type:'reps', sets:3, val:15, rest:30, muscles:['Lombaires','Fessiers'], tips:[
    "Allongé sur le ventre, lève bras et jambes en même temps.",
    "Amplitude modérée : inutile de monter très haut pour que ce soit efficace.",
    "Mouvement lent, sans à-coups, pour préserver le bas du dos."]},
- {id:'bird_dog', name:'Bird-Dog', cat:'Abdos / Core', icon:'🐕', type:'reps', sets:3, val:10, rest:30, tips:[
+ {id:'bird_dog', name:'Bird-Dog', cat:'Abdos / Core', icon:'🐕', type:'reps', sets:3, val:10, rest:30, muscles:['Abdominaux','Lombaires','Fessiers'], tips:[
    "À quatre pattes, mains sous les épaules, genoux sous les hanches, dos neutre.",
    "Tends un bras devant toi et la jambe opposée derrière en même temps, sans faire basculer le bassin.",
    "Reviens lentement à la position de départ avant de changer de côté : mouvement contrôlé plutôt que rapide."]},
- {id:'l_sit', name:'L-Sit', cat:'Abdos / Core', icon:'📏', type:'time', sets:3, val:15, rest:60, tips:[
+ {id:'l_sit', name:'L-Sit', cat:'Abdos / Core', icon:'📏', type:'time', sets:3, val:15, rest:60, muscles:['Abdominaux','Fléchisseurs de hanche','Quadriceps'], tips:[
    "Assis, mains posées au sol à côté des hanches, doigts vers l'avant, pousse pour décoller le bassin du sol.",
    "Jambes tendues devant toi à l'horizontale, épaules basses loin des oreilles.",
    "Exercice avancé et exigeant pour les poignets : commence par des tenues courtes et arrête en cas de douleur au poignet."]},
- {id:'hollow_hold', name:'Hollow Hold', cat:'Abdos / Core', icon:'🌙', type:'time', sets:3, val:25, rest:45, tips:[
+ {id:'hollow_hold', name:'Hollow Hold', cat:'Abdos / Core', icon:'🌙', type:'time', sets:3, val:25, rest:45, muscles:['Abdominaux'], tips:[
    "Allongé sur le dos, bas du dos plaqué au sol, bras tendus au-dessus de la tête et jambes tendues, légèrement décollées du sol.",
    "Si le bas du dos se cambre ou décolle, remonte les jambes ou rapproche les bras du corps pour réduire la difficulté.",
    "Respire normalement pendant le maintien, sans bloquer ta respiration."]},
- {id:'dragon_flag', name:'Dragon Flag', cat:'Abdos / Core', icon:'🐉', type:'reps', sets:3, val:5, rest:90, level:'Avancé', tips:[
+ {id:'dragon_flag', name:'Dragon Flag', cat:'Abdos / Core', icon:'🐉', type:'reps', sets:3, val:5, rest:90, level:'Avancé', muscles:['Abdominaux','Lombaires'], tips:[
    "Allongé sur un banc ou au sol, agrippe un point fixe stable derrière la tête (bord du banc, pied de meuble fixe) — jamais un objet qui peut bouger.",
    "Corps gainé comme une planche rigide, décolle tout le corps sauf les épaules, puis redescends très lentement sans jamais te laisser tomber : si tu perds le contrôle, plie les genoux pour couper le mouvement plutôt que de chuter.",
    "Débutant sur ce mouvement : commence genoux fléchis (version tuck) plutôt que jambes tendues, et arrête si le bas du dos se cambre ou travaille à la place des abdos.",
    "Exercice très avancé : maîtrise d'abord le hollow hold et le L-sit avant de tenter la version complète."]},
- {id:'mountain_climber', name:'Mountain Climbers', cat:'Cardio', icon:'⛰️', type:'time', sets:3, val:30, rest:30, tips:[
+ {id:'mountain_climber', name:'Mountain Climbers', cat:'Cardio', icon:'⛰️', type:'time', sets:3, val:30, rest:30, muscles:['Abdominaux','Épaules','Quadriceps'], tips:[
    "Position de pompe, ramène les genoux vers la poitrine en alternant les jambes.",
    "Garde les hanches basses et stables, épaules au-dessus des mains.",
    "Augmente le rythme progressivement sans sacrifier la position."]},
- {id:'burpee', name:'Burpees', cat:'Cardio', icon:'🔄', type:'reps', sets:3, val:10, rest:60, tips:[
+ {id:'burpee', name:'Burpees', cat:'Cardio', icon:'🔄', type:'reps', sets:3, val:10, rest:60, muscles:['Quadriceps','Pectoraux','Abdominaux','Épaules'], tips:[
    "Enchaîne squat, pompe et saut en gardant le dos neutre à chaque étape.",
    "Réception souple à l'atterrissage du saut, genoux fléchis.",
    "Retire le saut ou la pompe si tu dois préserver tes articulations."]},
- {id:'jumping_jack', name:'Jumping Jacks', cat:'Cardio', icon:'✖️', type:'time', sets:3, val:30, rest:20, tips:[
+ {id:'jumping_jack', name:'Jumping Jacks', cat:'Cardio', icon:'✖️', type:'time', sets:3, val:30, rest:20, muscles:['Mollets','Épaules','Quadriceps'], tips:[
    "Réception souple sur l'avant du pied, genoux légèrement fléchis.",
    "Garde un rythme régulier et une respiration fluide.",
    "Réduis l'amplitude des sauts si les épaules ou les chevilles sont sensibles."]},
- {id:'high_knees', name:'Montées de genoux', cat:'Cardio', icon:'🏃', type:'time', sets:3, val:30, rest:20, tips:[
+ {id:'high_knees', name:'Montées de genoux', cat:'Cardio', icon:'🏃', type:'time', sets:3, val:30, rest:20, muscles:['Quadriceps','Abdominaux','Mollets'], tips:[
    "Monte les genoux à hauteur de hanche en alternant rapidement.",
    "Reste sur l'avant du pied, buste droit, gainage actif.",
    "Diminue l'intensité en cas de gêne aux genoux ou aux hanches."]},
@@ -382,9 +382,12 @@ const EQUIPMENT_NOTES = {
 function defaultSessions(){
   const pick = (id, over={}) => { const e = EXO_LIB.find(x=>x.id===id); return {libId:e.id, name:e.name, icon:e.icon, type:e.type, sets:over.sets??e.sets, val:over.val??e.val, rest:over.rest??e.rest}; };
   return [
-    {id:'s_full', name:'Full Body Débutant', restBetween:30, exos:[pick('squat'),pick('pushup',{val:10}),pick('glute_bridge'),pick('plank',{val:30}),pick('jumping_jack')]},
-    {id:'s_hiit', name:'HIIT Cardio', restBetween:20, exos:[pick('jumping_jack'),pick('mountain_climber'),pick('burpee',{val:8}),pick('high_knees'),pick('jump_squat')]},
-    {id:'s_abs', name:'Abdos Express', restBetween:20, exos:[pick('crunch'),pick('leg_raise'),pick('plank'),pick('side_plank'),pick('superman')]},
+    {id:'s_full', name:'Full Body Débutant', exos:[pick('squat'),pick('pushup',{val:10}),pick('ytw_raise'),pick('glute_bridge'),pick('plank',{val:30}),pick('jumping_jack')]},
+    {id:'s_push', name:'Push (Poussée)', exos:[pick('pushup'),pick('pike_pushup'),pick('pushup_diamond'),pick('triceps_dip_air'),pick('pushup_incline',{val:15})]},
+    {id:'s_pull', name:'Pull (Tirage)', exos:[pick('table_row'),pick('towel_row_door'),pick('ytw_raise'),pick('towel_pullup_door')]},
+    {id:'s_legs', name:'Jambes', exos:[pick('squat'),pick('lunge'),pick('glute_bridge'),pick('hip_abduction'),pick('calf_raise'),pick('wall_sit')]},
+    {id:'s_hiit', name:'HIIT Cardio', exos:[pick('jumping_jack'),pick('mountain_climber'),pick('burpee',{val:8}),pick('high_knees'),pick('jump_squat')]},
+    {id:'s_abs', name:'Abdos Express', exos:[pick('crunch'),pick('leg_raise'),pick('plank'),pick('side_plank'),pick('superman')]},
   ];
 }
 
@@ -433,6 +436,14 @@ function hasEquipment(exo){ return !exo.equip || !!equipment[exo.equip]; }
 function availableExoLibrary(){ return allExoLibrary().filter(hasEquipment); }
 function getExoById(id){ return allExoLibrary().find(x=>x.id===id); }
 function getTipsFor(id){ const e = getExoById(id); return (e && e.tips && e.tips.length) ? e.tips : GENERIC_TIPS; }
+function getSessionMuscles(session){
+  const seen = [];
+  session.exos.forEach(e=>{
+    const libExo = getExoById(e.libId);
+    (libExo && libExo.muscles ? libExo.muscles : []).forEach(m=>{ if(!seen.includes(m)) seen.push(m); });
+  });
+  return seen;
+}
 
 function toast(msg){
   const t = document.getElementById('toast');
@@ -513,6 +524,7 @@ function renderHome(){
       const work = e.type==='time' ? e.val : e.val*2.5;
       return a + e.sets*(work+e.rest);
     },0) - s.exos[s.exos.length-1].rest)/60);
+    const muscles = getSessionMuscles(s);
     return `
     <div class="card">
       <div class="row between">
@@ -529,6 +541,7 @@ function renderHome(){
         ${s.exos.slice(0,5).map(e=>`<span class="pill">${e.icon} ${escapeHtml(e.name)}</span>`).join('')}
         ${s.exos.length>5?`<span class="pill">+${s.exos.length-5}</span>`:''}
       </div>
+      ${muscles.length ? `<p style="margin-top:8px;font-size:12px;">🎯 <b style="color:var(--text);font-weight:600;">Muscles travaillés :</b> ${muscles.map(m=>escapeHtml(m)).join(', ')}</p>` : ''}
       <button class="btn primary block" style="margin-top:12px;" data-start-session="${i}">▶ Démarrer</button>
     </div>`;
   }).join('') + `
@@ -631,11 +644,13 @@ function renderLibrary(){
       const locked = e.equip && !equipment[e.equip];
       const levelNote = e.level ? ` · ${escapeHtml(e.level)}` : '';
       const bandNote = e.bandTip ? ' · 🎗️ élastique en option' : '';
+      const musclesNote = (e.muscles&&e.muscles.length) ? `<small style="display:block;color:var(--muted);">🎯 ${e.muscles.map(m=>escapeHtml(m)).join(' · ')}</small>` : '';
       html += `<div class="card tight lib-item" style="margin-bottom:8px;${locked?'opacity:.5;':''}" data-tips="${e.id}">
         <span class="emoji">${e.icon}</span>
         <div style="flex:1;">
           <b>${escapeHtml(e.name)}</b>
           <small>${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${e.sets}×${e.val}${e.type==='time'?'s':''}${levelNote}${bandNote}${locked?` · 🔒 ${EQUIPMENT_LABELS[e.equip]}`:''}</small>
+          ${musclesNote}
         </div>
         <span class="pill">${locked?'🔒':'💡'}</span>
         ${e.custom? `<button class="icon-btn" data-del-custom="${e.id}">🗑️</button>` : ''}
@@ -740,7 +755,10 @@ function renderSheet(){
         <span style="font-size:30px;">${exo.icon}</span>
         <h3 style="margin:0;">${escapeHtml(exo.name)}</h3>
       </div>
-      ${exo.level ? `<p style="margin-bottom:6px;"><span class="pill">Niveau : ${escapeHtml(exo.level)}</span></p>` : ''}
+      <p style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;">
+        ${exo.level ? `<span class="pill">Niveau : ${escapeHtml(exo.level)}</span>` : ''}
+        ${(exo.muscles||[]).map(m=>`<span class="pill">🎯 ${escapeHtml(m)}</span>`).join('')}
+      </p>
       <p style="margin-bottom:16px;">Bonne exécution &amp; préservation des articulations</p>
       <ul class="tips-list">${tips.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ul>
       ${exo.bandTip ? `<div class="card tight" style="margin-top:16px;border-color:var(--accent2);">
