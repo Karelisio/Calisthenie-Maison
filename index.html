@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calisthénie Maison</title>
+<meta name="theme-color" content="#11150e">
+<meta name="description" content="Séances de calisthénie sans matériel, avec minuteur intégré.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root{
     --bg:#0f1115;
@@ -1284,6 +1289,13 @@ function attachEvents(){
 
 render();
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>

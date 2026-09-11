@@ -1,0 +1,14 @@
+{
+  "appId": "com.karelisio.calisthenie",
+  "appName": "Calisthénie Maison",
+  "webDir": "www",
+  "backgroundColor": "#11150e",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#11150e",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    }
+  }
+}

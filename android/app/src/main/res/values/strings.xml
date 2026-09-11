@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Calisthénie Maison</string>
+    <string name="title_activity_main">Calisthénie Maison</string>
+    <string name="package_name">com.karelisio.calisthenie</string>
+    <string name="custom_url_scheme">com.karelisio.calisthenie</string>
+</resources>
