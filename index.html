@@ -11,28 +11,32 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   /*
-   * Material 3 (dark) tonal palette — seed hue: green/teal.
-   * --accent/--accent2/etc. are kept as the names the rest of the
-   * app already renders with; only their values move to M3 roles so
-   * a native "dynamic color" plugin can override them at runtime by
-   * setting these same custom properties from the wallpaper's colors.
+   * Material 3 tonal palette — seed hue: green/teal. Light values live
+   * in the bare :root (default); dark redefines only the --md-* tokens,
+   * once for the OS preference and once for an explicit user choice, so
+   * both directions of the light/dark toggle win over "system".
+   * --accent/--accent2/etc. are kept as the names the rest of the app
+   * already renders with; only their values move to M3 roles so a
+   * native "dynamic color" plugin can override them at runtime by
+   * setting these same custom properties from the wallpaper's colors
+   * (dark scheme only — see initDynamicTheme()).
    */
   :root{
-    --md-primary:#a6d388;             --md-on-primary:#17390a;
-    --md-primary-container:#2d4f1c;   --md-on-primary-container:#c2efa4;
-    --md-tertiary:#a0cfd6;            --md-on-tertiary:#00373a;
-    --md-tertiary-container:#1f4e51;  --md-on-tertiary-container:#bcebf2;
-    --md-error:#ffb4ab;               --md-on-error:#690005;
-    --md-error-container:#93000a;     --md-on-error-container:#ffdad6;
-    --md-surface:#12140f;
-    --md-surface-container-low:#1a1c16;
-    --md-surface-container:#1e2018;
-    --md-surface-container-high:#282a22;
-    --md-surface-container-highest:#33352c;
-    --md-on-surface:#e2e3d9;
-    --md-on-surface-variant:#c4c8b9;
-    --md-outline:#8e9285;
-    --md-outline-variant:#44483c;
+    --md-primary:#3c6b2c;              --md-on-primary:#ffffff;
+    --md-primary-container:#bdf0a0;    --md-on-primary-container:#0b2500;
+    --md-tertiary:#2f6367;             --md-on-tertiary:#ffffff;
+    --md-tertiary-container:#bcebf0;   --md-on-tertiary-container:#001f21;
+    --md-error:#ba1a1a;                --md-on-error:#ffffff;
+    --md-error-container:#ffdad6;      --md-on-error-container:#410002;
+    --md-surface:#fbfbf3;
+    --md-surface-container-low:#f5f4ec;
+    --md-surface-container:#eff0e6;
+    --md-surface-container-high:#e9eae0;
+    --md-surface-container-highest:#e3e4da;
+    --md-on-surface:#1a1c17;
+    --md-on-surface-variant:#44483c;
+    --md-outline:#75796c;
+    --md-outline-variant:#c4c8b9;
 
     --bg:var(--md-surface);
     --bg2:var(--md-surface-container-low);
@@ -52,6 +56,44 @@
     --radius-lg:20px;
     --radius-full:999px;
 
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --md-primary:#a6d388;             --md-on-primary:#17390a;
+      --md-primary-container:#2d4f1c;   --md-on-primary-container:#c2efa4;
+      --md-tertiary:#a0cfd6;            --md-on-tertiary:#00373a;
+      --md-tertiary-container:#1f4e51;  --md-on-tertiary-container:#bcebf2;
+      --md-error:#ffb4ab;               --md-on-error:#690005;
+      --md-error-container:#93000a;     --md-on-error-container:#ffdad6;
+      --md-surface:#12140f;
+      --md-surface-container-low:#1a1c16;
+      --md-surface-container:#1e2018;
+      --md-surface-container-high:#282a22;
+      --md-surface-container-highest:#33352c;
+      --md-on-surface:#e2e3d9;
+      --md-on-surface-variant:#c4c8b9;
+      --md-outline:#8e9285;
+      --md-outline-variant:#44483c;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --md-primary:#a6d388;             --md-on-primary:#17390a;
+    --md-primary-container:#2d4f1c;   --md-on-primary-container:#c2efa4;
+    --md-tertiary:#a0cfd6;            --md-on-tertiary:#00373a;
+    --md-tertiary-container:#1f4e51;  --md-on-tertiary-container:#bcebf2;
+    --md-error:#ffb4ab;               --md-on-error:#690005;
+    --md-error-container:#93000a;     --md-on-error-container:#ffdad6;
+    --md-surface:#12140f;
+    --md-surface-container-low:#1a1c16;
+    --md-surface-container:#1e2018;
+    --md-surface-container-high:#282a22;
+    --md-surface-container-highest:#33352c;
+    --md-on-surface:#e2e3d9;
+    --md-on-surface-variant:#c4c8b9;
+    --md-outline:#8e9285;
+    --md-outline-variant:#44483c;
     color-scheme:dark;
   }
   *{box-sizing:border-box;}
@@ -450,7 +492,7 @@ function loadSessions(){
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
 function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
 function saveCustomExos(a){ try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
-function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true}; } }
+function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, theme:'system'}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, theme:'system'}; } }
 function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
 function loadEquipment(){ try{ return Object.assign({pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}, JSON.parse(localStorage.getItem(LS_EQUIPMENT)||'{}')); }catch(e){ return {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}; } }
 function saveEquipment(eq){ try{ localStorage.setItem(LS_EQUIPMENT, JSON.stringify(eq)); }catch(e){} }
@@ -498,6 +540,35 @@ function initDynamicTheme(){
   callNativePlugin('MaterialColors', 'getDynamicColors').then(res=>{
     if(res && res.available) applyDynamicColors(res);
   }).catch(()=>{});
+}
+function clearDynamicColors(){
+  const root = document.documentElement.style;
+  ['--accent','--on-accent','--accent-container','--on-accent-container',
+   '--accent2','--on-accent2','--accent2-container','--on-accent2-container',
+   '--bg','--bg2','--card','--card2','--border','--text','--muted'].forEach(v=>root.removeProperty(v));
+}
+
+/* ---------------- THEME ---------------- */
+function resolvedTheme(){
+  if(settings.theme === 'light' || settings.theme === 'dark') return settings.theme;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+}
+function applyTheme(){
+  if(settings.theme === 'light' || settings.theme === 'dark'){
+    document.documentElement.setAttribute('data-theme', settings.theme);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  if(resolvedTheme() === 'dark'){
+    initDynamicTheme();
+  } else {
+    clearDynamicColors();
+  }
+}
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if(settings.theme === 'system') applyTheme();
+  });
 }
 
 function allExoLibrary(){ return EXO_LIB.concat(customExos); }
@@ -619,6 +690,9 @@ function renderHome(){
     <div class="row wrap">
       <button class="btn sm ${settings.sound?'accent':'ghost'}" data-toggle="sound">🔊 Son ${settings.sound?'ON':'OFF'}</button>
       <button class="btn sm ${settings.vibrate?'accent':'ghost'}" data-toggle="vibrate">📳 Vibration ${settings.vibrate?'ON':'OFF'}</button>
+      <button class="btn sm ${settings.theme==='light'?'accent':'ghost'}" data-set-theme="light">☀️ Clair</button>
+      <button class="btn sm ${settings.theme==='dark'?'accent':'ghost'}" data-set-theme="dark">🌙 Sombre</button>
+      <button class="btn sm ${settings.theme==='system'?'accent':'ghost'}" data-set-theme="system">⚙️ Système</button>
       <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
       <button class="btn sm ghost" data-action="openExport">📤 Export</button>
       <button class="btn sm ghost" data-action="openImport">📥 Import</button>
@@ -1226,6 +1300,13 @@ function attachEvents(){
     render();
   });
 
+  app.querySelectorAll('[data-set-theme]').forEach(b=>b.onclick = ()=>{
+    settings.theme = b.getAttribute('data-set-theme');
+    saveSettings(settings);
+    applyTheme();
+    render();
+  });
+
   app.querySelectorAll('[data-start-session]').forEach(b=>b.onclick = ()=>startSession(parseInt(b.getAttribute('data-start-session'))));
   app.querySelectorAll('[data-del-session]').forEach(b=>b.onclick = ()=>{
     const i = parseInt(b.getAttribute('data-del-session'));
@@ -1305,7 +1386,7 @@ function attachEvents(){
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
       if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
       if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
-      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true}, data.settings); saveSettings(settings); }
+      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,theme:'system'}, data.settings); saveSettings(settings); applyTheme(); }
       if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
       if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
       sheet=null; view='home'; toast('Données importées ✓'); render();
@@ -1403,8 +1484,8 @@ function attachEvents(){
   if(overlay) overlay.onclick = (e)=>{ if(e.target===overlay){ sheet=null; render(); } };
 }
 
+applyTheme();
 render();
-initDynamicTheme();
 })();
 </script>
 <script>
