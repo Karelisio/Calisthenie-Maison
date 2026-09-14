@@ -836,6 +836,9 @@ function callNativePlugin(pluginName, method, options){
   return window.Capacitor.nativePromise(pluginName, method, options||{});
 }
 function callAppUpdater(method, options){ return callNativePlugin('AppUpdater', method, options); }
+/* Page de secours si la mise à jour intégrée coince (appui long sur le
+   bouton "Mise à jour") : permet d'installer l'APK à la main. */
+const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 
 /* Material You: tint the app's M3 tokens with the device's wallpaper-derived
    colors (Android 12+), falling back to the static palette otherwise. */
@@ -1069,7 +1072,7 @@ function renderHome(){
       <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
       <button class="btn sm ghost" data-action="openExport">📤 Export</button>
       <button class="btn sm ghost" data-action="openImport">📥 Import</button>
-      ${isNativeApp() ? `<button class="btn sm ghost" data-action="openUpdate">🔄 Mise à jour</button>` : ''}
+      ${isNativeApp() ? `<button class="btn sm ghost" data-update-btn="1">🔄 Mise à jour</button>` : ''}
     </div>
   </div>`;
 }
@@ -1999,6 +2002,23 @@ function attachEvents(){
   app.querySelectorAll('[data-action]').forEach(b=>{
     const key = b.getAttribute('data-action');
     if(actionMap[key]) b.onclick = actionMap[key];
+  });
+
+  // Appui court sur "Mise à jour" : écran habituel. Appui long : page GitHub
+  // de la release, pour installer à la main si la mise à jour intégrée coince.
+  app.querySelectorAll('[data-update-btn]').forEach(b=>{
+    let pressTimer=null, longPressed=false;
+    const cancelTimer=()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } };
+    b.addEventListener('pointerdown', ()=>{
+      longPressed=false;
+      pressTimer=setTimeout(()=>{ longPressed=true; window.open(UPDATE_RELEASE_PAGE_URL, '_blank'); }, 550);
+    });
+    b.addEventListener('pointerup', ()=>{
+      cancelTimer();
+      if(!longPressed) actionMap.openUpdate();
+    });
+    b.addEventListener('pointerleave', cancelTimer);
+    b.addEventListener('pointercancel', cancelTimer);
   });
 
   app.querySelectorAll('[data-tips]').forEach(b=>b.onclick = (ev)=>{
