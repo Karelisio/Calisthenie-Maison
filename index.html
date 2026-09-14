@@ -733,6 +733,12 @@ function buildStretchExos(session){
   return pickFlexItems(STRETCH_LIB, muscles, plan.stretches).map(s=>toFlexExo(s, 'stretch', FLEX_REST.stretch));
 }
 
+/* Muscles proposés lors de la création d'un exercice personnalisé — mêmes
+   libellés que ceux d'EXO_LIB/WARMUP_LIB/STRETCH_LIB pour que le ciblage
+   automatique de l'échauffement/étirement fonctionne aussi sur eux. */
+const MUSCLE_OPTIONS = ["Abdominaux","Avant-bras","Biceps","Dos","Épaules","Fessiers","Fessiers (moyen)","Fléchisseurs de hanche","Hanches","Ischio-jambiers","Lombaires","Mollets","Obliques","Pectoraux","Quadriceps","Trapèzes","Triceps"];
+const CUSTOM_CAT_OPTIONS = ['Haut du corps – Push','Haut du corps – Pull','Bas du corps','Abdos / Core','Cardio'];
+
 const EQUIPMENT_LABELS = {
   pullupBar: 'Barre de traction',
   dipBar: 'Barre de dips',
@@ -1064,7 +1070,7 @@ function renderBuilder(){
   <div class="card">
     <label class="field" style="margin-bottom:0;">
       <span>Nom de la séance</span>
-      <input type="text" id="sessionName" value="${escapeAttr(d.name)}">
+      <input type="text" id="sessionName" value="${escapeHtml(d.name)}">
     </label>
     <p style="margin-top:10px;">💡 Le temps de repos se règle exercice par exercice ci-dessous.</p>
   </div>
@@ -1096,7 +1102,7 @@ function renderBuilderExo(e,i){
       </div>
       <div class="row" style="gap:6px;flex-shrink:0;">
         <button class="icon-btn" data-tips="${e.libId}" title="Conseils">💡</button>
-        <button class="icon-btn" data-remove-exo="${i}">✕</button>
+        <button class="icon-btn" data-remove-exo="${i}" title="Retirer" aria-label="Retirer cet exercice">✕</button>
       </div>
     </div>
     <div class="row wrap" style="gap:18px;margin-top:12px;">
@@ -1148,7 +1154,7 @@ function renderLibCard(e, note){
       ${musclesNote}
     </div>
     <span class="pill">${lockIcon}</span>
-    ${e.custom? `<button class="icon-btn" data-del-custom="${e.id}">🗑️</button>` : ''}
+    ${e.custom? `<button class="icon-btn" data-del-custom="${e.id}" title="Supprimer" aria-label="Supprimer cet exercice personnalisé">🗑️</button>` : ''}
   </div>`;
 }
 function renderLibSection(entries, catLabels, noteFor){
@@ -1255,20 +1261,26 @@ function renderSheet(){
     </div></div>`;
   }
   if(sheet.type==='customExo'){
+    const draftMuscles = sheet.muscles || [];
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <h3>Nouvel exercice personnalisé</h3>
-      <label class="field"><span>Nom</span><input type="text" id="customName" placeholder="Ex : Pompes archer"></label>
+      <label class="field"><span>Nom</span><input type="text" id="customName" placeholder="Ex : Pompes archer" value="${escapeHtml(sheet.name||'')}"></label>
       <label class="field"><span>Type</span>
         <select id="customType">
-          <option value="reps">Répétitions</option>
-          <option value="time">Durée (temps)</option>
+          <option value="reps" ${sheet.exoType!=='time'?'selected':''}>Répétitions</option>
+          <option value="time" ${sheet.exoType==='time'?'selected':''}>Durée (temps)</option>
         </select>
       </label>
       <label class="field"><span>Catégorie</span>
         <select id="customCat">
-          <option>Haut du corps – Push</option><option>Haut du corps – Pull</option><option>Bas du corps</option><option>Abdos / Core</option><option>Cardio</option>
+          ${CUSTOM_CAT_OPTIONS.map(c=>`<option ${sheet.cat===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}
         </select>
       </label>
+      <label class="field"><span>Muscles travaillés (optionnel)</span></label>
+      <div class="row wrap" style="gap:6px;margin:-4px 0 4px;">
+        ${MUSCLE_OPTIONS.map(m=>`<button type="button" class="btn sm ${draftMuscles.includes(m)?'accent':'ghost'}" data-toggle-custom-muscle="${escapeHtml(m)}">${escapeHtml(m)}</button>`).join('')}
+      </div>
+      <p style="margin-bottom:14px;">Sert à afficher les muscles travaillés de tes séances et à cibler l'échauffement/étirement automatique.</p>
       <div class="row" style="margin-top:14px;">
         <button class="btn ghost block" data-action="closeSheet">Annuler</button>
         <button class="btn primary block" data-action="saveCustomExo">Créer</button>
@@ -1745,7 +1757,7 @@ function renderPlayer(){
   return `
   <div class="player" id="playerRoot">
     <div class="row between" style="margin-bottom:6px;">
-      <button class="icon-btn" data-action="exitPlayer">✕</button>
+      <button class="icon-btn" data-action="exitPlayer" title="Quitter" aria-label="Quitter la séance">✕</button>
       <span class="pill">${escapeHtml(s.name)}</span>
       <span class="pill">${player.stepIdx+1}/${totalSteps}</span>
     </div>
@@ -1784,7 +1796,6 @@ function formatTime(sec){
 
 /* ---------------- HELPERS ---------------- */
 function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function escapeAttr(str){ return escapeHtml(str); }
 
 /* ---------------- EVENTS ---------------- */
 function attachEvents(){
@@ -1864,7 +1875,7 @@ function attachEvents(){
 
   const actionMap = {
     openAddExo: ()=>{ sheet={type:'addExo'}; render(); },
-    openCustomExo: ()=>{ sheet={type:'customExo'}; render(); },
+    openCustomExo: ()=>{ sheet={type:'customExo', name:'', exoType:'reps', cat:CUSTOM_CAT_OPTIONS[0], muscles:[]}; render(); },
     openEquipment: ()=>{ sheet={type:'equipment'}; render(); },
     openExport: ()=>{ sheet={type:'export'}; render(); },
     openImport: ()=>{ sheet={type:'import'}; render(); },
@@ -1945,8 +1956,11 @@ function attachEvents(){
       if(!name){ toast('Donne un nom à ton exercice.'); return; }
       const type = document.getElementById('customType').value;
       const cat = document.getElementById('customCat').value;
+      const muscles = (sheet.muscles || []).slice();
       const id = 'custom_'+Date.now();
-      customExos.push({id, name, cat, type, icon:'⭐', sets:3, val: type==='time'?30:12, rest:45, custom:true});
+      const entry = {id, name, cat, type, icon:'⭐', sets:3, val: type==='time'?30:12, rest:45, custom:true};
+      if(muscles.length) entry.muscles = muscles;
+      customExos.push(entry);
       saveCustomExos(customExos);
       sheet=null; toast('Exercice créé ✓'); render();
     },
@@ -1978,6 +1992,22 @@ function attachEvents(){
     const wasRunning = view==='player' && player.running;
     if(wasRunning) pausePlayer();
     sheet = {type:'tips', exoId:b.getAttribute('data-tips'), resumeOnClose:wasRunning};
+    render();
+  });
+
+  app.querySelectorAll('[data-toggle-custom-muscle]').forEach(b=>b.onclick = ()=>{
+    // On récupère d'abord ce qui est déjà saisi dans le formulaire, pour ne
+    // pas le perdre quand on réaffiche la fiche après avoir (dés)activé un muscle.
+    const nameEl = document.getElementById('customName');
+    const typeEl = document.getElementById('customType');
+    const catEl = document.getElementById('customCat');
+    if(nameEl) sheet.name = nameEl.value;
+    if(typeEl) sheet.exoType = typeEl.value;
+    if(catEl) sheet.cat = catEl.value;
+    const m = b.getAttribute('data-toggle-custom-muscle');
+    sheet.muscles = sheet.muscles || [];
+    const idx = sheet.muscles.indexOf(m);
+    if(idx>=0) sheet.muscles.splice(idx,1); else sheet.muscles.push(m);
     render();
   });
 
