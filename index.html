@@ -186,12 +186,14 @@
     padding:5px 12px;border-radius:var(--radius-full);font-size:12px;color:var(--muted);}
   .badge{background:var(--accent-container);color:var(--on-accent-container);padding:2px 8px;border-radius:var(--radius-full);font-size:11px;font-weight:700;}
 
-  input[type=text], input[type=number], select{
+  input[type=text], input[type=number], select, textarea{
     width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);
-    padding:12px;border-radius:8px;font-size:14px;
+    padding:12px;border-radius:8px;font-size:14px;font-family:inherit;
     transition:border-color .15s ease;
   }
-  input[type=text]:focus, input[type=number]:focus, select:focus{border-color:var(--accent);outline:none;}
+  input[type=text]:focus, input[type=number]:focus, select:focus, textarea:focus{border-color:var(--accent);outline:none;}
+  textarea{resize:vertical;}
+  textarea.code{min-height:220px;font-family:monospace;font-size:11px;}
   label.field{display:block;margin-bottom:10px;}
   label.field span{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
 
@@ -231,11 +233,6 @@
   .next-preview{margin-top:18px;color:var(--muted);font-size:13px;}
   .next-preview b{color:var(--text);}
 
-  footer.tabbar{
-    position:fixed;bottom:0;left:0;right:0;background:var(--md-surface-container-low);
-    padding:8px 12px calc(8px + env(safe-area-inset-bottom));
-    display:flex;justify-content:center;
-  }
   .toast{
     position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);
     background:var(--md-surface-container-highest);color:var(--text);padding:10px 18px;border-radius:var(--radius-full);font-size:13px;
@@ -442,156 +439,287 @@ const GENERIC_TIPS = [
   "Arrête l'exercice en cas de douleur articulaire (pas de simple fatigue musculaire) et adapte l'amplitude ou l'intensité."
 ];
 
-/* Générique, toujours la même séquence : mobilise le corps entier avant l'effort. */
-/* Toujours inclus : active le cardio et la respiration avant le reste. */
-const WARMUP_BASE = [
-  {name:'Montées de genoux', icon:'🏃', tips:[
-    "Monte les genoux à hauteur de hanche en alternant, sans forcer sur l'amplitude.",
-    "Reste sur l'avant du pied, buste droit, respiration régulière.",
-    "Augmente le rythme progressivement pour faire monter le pouls."]},
-  {name:'Jumping Jacks', icon:'✖️', tips:[
-    "Réception souple sur l'avant du pied, genoux légèrement fléchis.",
-    "Amplitude complète des bras sans bloquer les épaules en haut.",
-    "Rythme modéré : l'objectif est d'activer, pas d'épuiser."]},
-];
-
-/* Choisi automatiquement selon les muscles réellement sollicités par la séance. */
-const WARMUP_MUSCLE_LIB = [
-  {id:'w_shoulders', name:'Rotations d\'épaules', icon:'🔄', muscles:['Épaules'], tips:[
-    "Grands cercles lents avec les bras tendus, vers l'avant puis vers l'arrière.",
-    "Garde les épaules basses, loin des oreilles, tout au long du mouvement.",
-    "Amplifie progressivement le cercle sans forcer en cas de raideur."]},
-  {id:'w_chest', name:'Balancés de bras (ouverture poitrine)', icon:'🤲', muscles:['Pectoraux'], tips:[
-    "Bras tendus sur les côtés, croise-les devant toi puis rouvre-les en grand.",
-    "Mouvement fluide et rythmé, sans à-coups sur les épaules.",
-    "Redresse le buste pour bien ouvrir la cage thoracique à chaque ouverture."]},
-  {id:'w_triceps', name:'Extensions de bras légères', icon:'💪', muscles:['Triceps'], tips:[
-    "Bras levé, plie et déplie doucement le coude au-dessus de la tête.",
-    "Mouvement lent, sans chercher l'amplitude maximale d'entrée.",
-    "Change de bras à mi-temps pour échauffer les deux côtés."]},
-  {id:'w_back', name:'Rotations d\'épaules en arrière', icon:'🔃', muscles:['Dos','Trapèzes'], tips:[
-    "Épaules tirées vers l'arrière et le bas en grands cercles lents.",
-    "Imagine que tu rapproches les omoplates à chaque rotation.",
-    "Garde la nuque relâchée, regard droit devant."]},
-  {id:'w_biceps', name:'Flexions légères des bras', icon:'🙌', muscles:['Biceps'], tips:[
-    "Bras tendus devant toi, plie et déplie les coudes sans charge.",
-    "Mouvement contrôlé, amplitude complète mais sans forcer.",
-    "Respire normalement, ce n'est qu'une mise en route."]},
-  {id:'w_forearms', name:'Rotations de poignets', icon:'✋', muscles:['Avant-bras'], tips:[
-    "Bras tendus, fais tourner les poignets dans un sens puis dans l'autre.",
-    "Ajoute des ouvertures/fermetures de mains pour activer les avant-bras.",
-    "Utile avant tout exercice de suspension ou de préhension (tractions)."]},
-  {id:'w_core', name:'Rotations du buste', icon:'🌪️', muscles:['Abdominaux','Obliques','Lombaires'], tips:[
-    "Pieds ancrés au sol, tourne le buste doucement d'un côté puis de l'autre.",
-    "Laisse les bras suivre le mouvement de façon détendue.",
-    "Garde les hanches relativement stables pour cibler le tronc."]},
-  {id:'w_hips', name:'Cercles de hanches', icon:'🌀', muscles:['Hanches','Fléchisseurs de hanche'], tips:[
-    "Mains sur les hanches, décris de grands cercles avec le bassin.",
-    "Quelques tours dans un sens, puis dans l'autre.",
-    "Garde les genoux légèrement fléchis pour protéger le bas du dos."]},
-  {id:'w_legs', name:'Fentes dynamiques légères', icon:'🦵', muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
-    "Grand pas en avant, descends légèrement sans forcer sur l'amplitude.",
-    "Alterne les jambes à un rythme modéré et contrôlé.",
-    "Le but est de réveiller les muscles, pas de faire une série difficile."]},
-  {id:'w_calves', name:'Montées sur pointes de pieds', icon:'🦶', muscles:['Mollets'], tips:[
-    "Monte sur la pointe des pieds puis redescends à un rythme régulier.",
-    "Prends appui sur un mur ou une chaise si l'équilibre est difficile.",
-    "Quelques répétitions suffisent pour activer les mollets."]},
-];
-function findWarmupForMuscle(muscle){
-  return WARMUP_MUSCLE_LIB.find(w=>w.muscles.some(m=>muscle.startsWith(m) || m.startsWith(muscle)));
-}
-
-const STRETCH_LIB = [
-  {id:'s_chest', name:'Étirement pectoraux', icon:'🤸', muscles:['Pectoraux'], tips:[
-    "Bras tendu contre un mur ou un chambranle, tourne doucement le buste à l'opposé.",
-    "Tu dois sentir un étirement dans la poitrine, sans douleur à l'épaule.",
-    "Change de bras et répète de l'autre côté."]},
-  {id:'s_shoulders', name:'Étirement épaules', icon:'🙆', muscles:['Épaules'], tips:[
-    "Amène un bras tendu devant toi, l'autre bras vient le plaquer contre la poitrine.",
-    "Garde les épaules basses, sans hausser celle du bras étiré.",
-    "Maintiens la position sans à-coups, puis change de côté."]},
-  {id:'s_triceps', name:'Étirement triceps', icon:'💪', muscles:['Triceps'], tips:[
-    "Un bras plié derrière la tête, l'autre main pousse doucement le coude vers le bas.",
-    "Garde le dos neutre, évite de cambrer pour compenser.",
-    "Change de bras à mi-temps."]},
-  {id:'s_biceps', name:'Étirement biceps', icon:'🙌', muscles:['Biceps'], tips:[
-    "Bras tendu derrière toi, paume vers l'arrière, contre un mur si possible.",
-    "Tourne légèrement le buste à l'opposé pour accentuer l'étirement.",
-    "Reste sans à-coups, respire normalement."]},
-  {id:'s_forearms', name:'Étirement avant-bras', icon:'✋', muscles:['Avant-bras'], tips:[
-    "Bras tendu devant toi, tire doucement les doigts vers le bas puis vers le haut.",
-    "Change de bras après quelques secondes de chaque côté.",
-    "Particulièrement utile après des tractions ou du gainage."]},
-  {id:'s_back', name:'Étirement dos (chat étiré)', icon:'🧎', muscles:['Dos','Trapèzes'], tips:[
-    "À quatre pattes, recule les fessiers vers les talons en tendant les bras.",
-    "Laisse le dos s'arrondir doucement, front proche du sol.",
-    "Respire profondément sans forcer la position."]},
-  {id:'s_lower_back', name:'Étirement lombaires (genoux poitrine)', icon:'🤰', muscles:['Lombaires'], tips:[
-    "Allongé sur le dos, ramène les genoux vers la poitrine avec les mains.",
-    "Garde le bas du dos plaqué au sol, respiration lente.",
-    "N'insiste pas en cas de douleur, relâche progressivement."]},
-  {id:'s_abs', name:'Étirement abdominaux (cobra)', icon:'🐍', muscles:['Abdominaux'], tips:[
-    "Allongé sur le ventre, pousse doucement le buste vers le haut sur les avant-bras ou les mains.",
-    "Garde les hanches au sol, sans forcer sur les lombaires.",
-    "Redescends lentement si tu sens une gêne dans le bas du dos."]},
-  {id:'s_obliques', name:'Étirement obliques', icon:'↔️', muscles:['Obliques'], tips:[
-    "Debout, un bras levé, incline le buste sur le côté opposé.",
-    "Garde le bassin stable, l'étirement doit venir du flanc.",
-    "Maintiens sans à-coups puis change de côté."]},
-  {id:'s_quads', name:'Étirement quadriceps', icon:'🦵', muscles:['Quadriceps'], tips:[
-    "Debout, attrape ta cheville derrière toi et ramène le talon vers la fesse.",
-    "Genoux proches l'un de l'autre, bassin légèrement rentré.",
-    "Prends appui sur un mur ou une chaise si l'équilibre est difficile."]},
-  {id:'s_hamstrings', name:'Étirement ischio-jambiers', icon:'🤾', muscles:['Ischio-jambiers'], tips:[
-    "Jambe tendue devant toi (assis ou debout), penche-toi doucement vers l'avant.",
-    "Garde le dos aussi droit que possible plutôt que d'arrondir pour aller plus loin.",
-    "Arrête-toi à la sensation d'étirement, jamais à la douleur."]},
-  {id:'s_glutes', name:'Étirement fessiers', icon:'🍑', muscles:['Fessiers'], tips:[
-    "Allongé sur le dos, croise une cheville sur le genou opposé et ramène vers la poitrine.",
-    "Garde le bas du dos plaqué au sol pendant l'étirement.",
-    "Change de côté après quelques secondes."]},
-  {id:'s_calves', name:'Étirement mollets', icon:'🦶', muscles:['Mollets'], tips:[
-    "Face à un mur, une jambe reculée tendue, talon au sol.",
-    "Avance légèrement les hanches vers le mur pour accentuer l'étirement.",
-    "Change de jambe après quelques secondes."]},
-  {id:'s_hips', name:'Étirement fléchisseurs de hanche', icon:'🧘', muscles:['Fléchisseurs de hanche','Hanches'], tips:[
-    "Position de fente basse, genou arrière au sol, pousse doucement le bassin vers l'avant.",
-    "Garde le buste droit plutôt que de te pencher en avant.",
-    "Change de jambe et répète de l'autre côté."]},
-];
-function findStretchForMuscle(muscle){
-  return STRETCH_LIB.find(s=>s.muscles.some(m=>muscle.startsWith(m) || m.startsWith(muscle)));
-}
-
-/* Court ≈ 3 min, Long ≈ 7 min (approximatif : dépend des muscles touchés par la séance). */
-const FLEX_DURATIONS = {
-  short: { base:20, item:20, maxMuscleItems:3 },
-  long:  { base:35, item:35, maxMuscleItems:8 },
+/* ---------------- ÉCHAUFFEMENT ----------------
+ * Structuré selon le protocole RAMP (Raise / Activate / Mobilise /
+ * Potentiate) : on fait d'abord monter le pouls, puis on mobilise les
+ * articulations et active les muscles concernés, et enfin on répète en
+ * version légère les mouvements de la séance. Les étirements statiques
+ * n'ont volontairement pas leur place ici : maintenus longtemps avant
+ * l'effort, ils réduisent temporairement la force disponible.
+ */
+const WARMUP_CATS = {
+  raise: 'Élévation cardio',
+  mobilise: 'Mobilité articulaire',
+  activate: 'Activation musculaire',
+  potentiate: 'Préparation spécifique',
 };
+const WARMUP_LIB = [
+  /* --- Élévation cardio : monter la température et le rythme --- */
+  {id:'w_high_knees', name:'Montées de genoux', icon:'🏃', cat:'raise', val:30, muscles:['Quadriceps','Fléchisseurs de hanche','Mollets'], tips:[
+    "Monte les genoux à hauteur de hanche en alternant, buste droit.",
+    "Reste sur l'avant du pied, bras actifs pour accompagner le rythme.",
+    "Commence lentement et accélère progressivement sur la durée."]},
+  {id:'w_jacks', name:'Jumping Jacks', icon:'✖️', cat:'raise', val:30, muscles:['Épaules','Mollets','Quadriceps'], tips:[
+    "Réception souple sur l'avant du pied, genoux légèrement fléchis.",
+    "Amplitude complète des bras, sans hausser les épaules aux oreilles.",
+    "Rythme modéré : l'objectif est d'activer, pas de s'épuiser."]},
+  {id:'w_butt_kicks', name:'Talons-fesses', icon:'🦵', cat:'raise', val:30, muscles:['Ischio-jambiers','Quadriceps'], tips:[
+    "Ramène les talons vers les fessiers en alternant rapidement.",
+    "Garde le bassin stable, sans cambrer le bas du dos.",
+    "Reste sur l'avant du pied, appuis légers et silencieux."]},
+  {id:'w_skip', name:'Corde à sauter (sans corde)', icon:'🪢', cat:'raise', val:30, muscles:['Mollets','Épaules'], tips:[
+    "Petits sauts sur place, chevilles souples, amplitude minimale.",
+    "Les poignets font le mouvement de rotation, pas les épaules.",
+    "Excellent pour réveiller les chevilles avant tout travail de jambes."]},
+  {id:'w_jog', name:'Jogging sur place', icon:'👟', cat:'raise', val:30, muscles:['Mollets','Quadriceps'], tips:[
+    "Foulées courtes et légères, respiration nasale si possible.",
+    "Relâche les épaules et laisse les bras balancer naturellement.",
+    "Idéal comme toute première minute d'échauffement."]},
+
+  /* --- Mobilité articulaire : amplitude active, articulation par articulation --- */
+  {id:'w_wrists', name:'Rotations de poignets', icon:'✋', cat:'mobilise', val:20, muscles:['Avant-bras'], tips:[
+    "Doigts entrelacés ou poings fermés, décris des cercles dans les deux sens.",
+    "Ajoute quelques ouvertures/fermetures de mains pour la préhension.",
+    "Indispensable avant tout appui sur les mains (pompes, gainage) ou suspension."]},
+  {id:'w_ankles', name:'Rotations de chevilles', icon:'🦶', cat:'mobilise', val:20, muscles:['Mollets'], tips:[
+    "En appui sur une jambe, décris des cercles avec la pointe du pied.",
+    "Change de côté à mi-temps, appuie-toi contre un mur si besoin.",
+    "Prépare les chevilles aux squats profonds et aux réceptions de sauts."]},
+  {id:'w_arm_circles', name:'Cercles de bras', icon:'🔄', cat:'mobilise', val:25, muscles:['Épaules','Trapèzes'], tips:[
+    "Bras tendus, petits cercles qui s'agrandissent progressivement.",
+    "Fais la moitié du temps vers l'avant, l'autre moitié vers l'arrière.",
+    "Garde les épaules basses plutôt que collées aux oreilles."]},
+  {id:'w_shoulder_rolls', name:'Rotations d\'épaules', icon:'🔃', cat:'mobilise', val:20, muscles:['Épaules','Trapèzes','Dos'], tips:[
+    "Grands cercles lents avec les épaules, vers l'arrière surtout.",
+    "Cherche à rapprocher les omoplates en fin de rotation arrière.",
+    "Nuque relâchée, regard droit devant, respiration libre."]},
+  {id:'w_chest_opener', name:'Ouverture de poitrine (balancés croisés)', icon:'🤲', cat:'mobilise', val:25, muscles:['Pectoraux','Épaules'], tips:[
+    "Croise les bras devant toi puis ouvre-les en grand vers l'arrière.",
+    "Mouvement rythmé et fluide, sans à-coup en fin d'amplitude.",
+    "Redresse le buste pour vraiment ouvrir la cage thoracique."]},
+  {id:'w_elbow_swings', name:'Flexions-extensions de coudes', icon:'🙌', cat:'mobilise', val:20, muscles:['Biceps','Triceps','Avant-bras'], tips:[
+    "Bras le long du corps, plie et déplie les coudes sur toute l'amplitude.",
+    "Tourne les paumes vers le haut puis vers le bas d'une série à l'autre.",
+    "Réveille les coudes avant les tractions, dips ou pompes."]},
+  {id:'w_torso_twist', name:'Rotations du buste', icon:'🌪️', cat:'mobilise', val:25, muscles:['Obliques','Abdominaux','Lombaires'], tips:[
+    "Pieds ancrés largeur d'épaules, tourne le buste d'un côté puis de l'autre.",
+    "Laisse les bras suivre librement, sans forcer la rotation.",
+    "Garde le bassin face à l'avant pour cibler le tronc."]},
+  {id:'w_hip_circles', name:'Cercles de hanches', icon:'🌀', cat:'mobilise', val:20, muscles:['Hanches','Fléchisseurs de hanche','Lombaires'], tips:[
+    "Mains sur les hanches, décris de grands cercles avec le bassin.",
+    "Quelques tours dans un sens puis dans l'autre.",
+    "Genoux légèrement fléchis pour protéger le bas du dos."]},
+  {id:'w_leg_swings', name:'Balancés de jambe avant/arrière', icon:'🦿', cat:'mobilise', val:25, muscles:['Ischio-jambiers','Fléchisseurs de hanche','Fessiers'], tips:[
+    "Appuie-toi à un mur et balance une jambe d'avant en arrière, tendue mais relâchée.",
+    "Augmente l'amplitude sur les dernières répétitions, jamais d'un coup sec.",
+    "Change de jambe à mi-temps, buste stable tout du long."]},
+  {id:'w_leg_swings_side', name:'Balancés de jambe latéraux', icon:'↔️', cat:'mobilise', val:25, muscles:['Hanches','Fessiers (moyen)','Fessiers'], tips:[
+    "Face à un mur, balance une jambe de gauche à droite devant toi.",
+    "Garde le bassin stable, le mouvement vient de la hanche.",
+    "Prépare les hanches aux fentes et aux squats larges."]},
+  {id:'w_cat_cow', name:'Chat-vache', icon:'🐈', cat:'mobilise', val:30, muscles:['Lombaires','Dos','Abdominaux'], tips:[
+    "À quatre pattes, alterne dos rond (expire) et dos creux (inspire).",
+    "Mouvement lent, vertèbre par vertèbre, sans forcer les extrêmes.",
+    "Le meilleur réveil de la colonne avant le gainage ou les tractions."]},
+  {id:'w_inchworm', name:'Chenille (inchworm)', icon:'🐛', cat:'mobilise', val:30, muscles:['Ischio-jambiers','Épaules','Abdominaux'], tips:[
+    "Debout, penche-toi, pose les mains au sol et avance-les jusqu'en planche.",
+    "Reviens en marchant avec les mains vers les pieds, jambes presque tendues.",
+    "Mobilise la chaîne arrière et prépare les épaules à supporter ton poids."]},
+  {id:'w_worlds_greatest', name:'Fente + rotation (world\'s greatest)', icon:'🌍', cat:'mobilise', val:40, muscles:['Fléchisseurs de hanche','Hanches','Obliques','Ischio-jambiers'], tips:[
+    "Grande fente avant, main intérieure au sol, puis ouvre le buste bras vers le ciel.",
+    "Marque une pause en position ouverte avant de changer de côté.",
+    "Un seul mouvement qui mobilise hanches, colonne et épaules — le plus rentable."]},
+  {id:'w_deep_squat', name:'Squat profond avec appui', icon:'🧘', cat:'mobilise', val:30, muscles:['Hanches','Quadriceps','Mollets'], tips:[
+    "Descends en squat complet, talons au sol, en te tenant à un appui si besoin.",
+    "Bascule doucement d'un côté à l'autre pour ouvrir les hanches.",
+    "Garde le dos long plutôt que complètement arrondi."]},
+
+  /* --- Activation musculaire : réveiller ce qui va travailler --- */
+  {id:'w_glute_bridge', name:'Pont fessier (activation)', icon:'🌉', cat:'activate', val:30, muscles:['Fessiers','Ischio-jambiers','Lombaires'], tips:[
+    "Allongé, pieds à plat proches des fessiers, monte le bassin en serrant les fessiers.",
+    "Marque 1 seconde en haut, sans cambrer le bas du dos.",
+    "Réveille les fessiers, souvent endormis après une journée assise."]},
+  {id:'w_dead_bug', name:'Dead bug', icon:'🪲', cat:'activate', val:30, muscles:['Abdominaux','Lombaires'], tips:[
+    "Sur le dos, bras au plafond et genoux à 90°, tends bras et jambe opposés.",
+    "Garde le bas du dos plaqué au sol : c'est tout l'intérêt du mouvement.",
+    "Lentement, en soufflant sur l'extension."]},
+  {id:'w_bird_dog', name:'Bird-dog', icon:'🐕', cat:'activate', val:30, muscles:['Lombaires','Abdominaux','Fessiers'], tips:[
+    "À quatre pattes, tends bras et jambe opposés sans faire basculer le bassin.",
+    "Imagine un verre d'eau posé sur le bas de ton dos.",
+    "Alterne lentement, 2-3 secondes de maintien à chaque extension."]},
+  {id:'w_scap_pushup', name:'Pompes scapulaires', icon:'🔲', cat:'activate', val:25, muscles:['Trapèzes','Épaules','Pectoraux'], tips:[
+    "En position de planche bras tendus, rapproche puis écarte les omoplates.",
+    "Les coudes restent tendus : seul le haut du dos bouge.",
+    "Prépare la ceinture scapulaire aux pompes et aux dips."]},
+  {id:'w_ytw', name:'Élévations Y-T-W', icon:'🦅', cat:'activate', val:30, muscles:['Trapèzes','Dos','Épaules'], tips:[
+    "Allongé sur le ventre, lève les bras tendus en Y, puis en T, puis en W.",
+    "Serre les omoplates à chaque position, sans cambrer les lombaires.",
+    "Amplitude modérée : la contraction compte plus que la hauteur."]},
+  {id:'w_scap_pull', name:'Tirage scapulaire (barre)', icon:'⬆️', cat:'activate', val:25, equip:'pullupBar', muscles:['Dos','Trapèzes','Avant-bras'], tips:[
+    "Suspendu bras tendus, descends les épaules en rapprochant les omoplates.",
+    "Les coudes restent tendus : tu ne montes que de quelques centimètres.",
+    "Le meilleur préparateur avant des tractions lourdes."]},
+
+  /* --- Préparation spécifique : le geste de la séance, en version facile --- */
+  {id:'w_knee_pushup', name:'Pompes sur genoux (légères)', icon:'💪', cat:'potentiate', val:25, muscles:['Pectoraux','Triceps','Épaules'], tips:[
+    "Quelques répétitions lentes, à moitié de ton intensité habituelle.",
+    "Corps gainé, coudes à 45° du buste comme sur une vraie pompe.",
+    "But : répéter le geste, pas fatiguer les muscles."]},
+  {id:'w_bw_squat', name:'Squats au poids du corps (lents)', icon:'🦵', cat:'potentiate', val:30, muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
+    "Descente lente et contrôlée, amplitude progressive d'une rep à l'autre.",
+    "Genoux dans l'axe des pieds, talons ancrés au sol.",
+    "3-4 répétitions suffisent pour préparer le mouvement."]},
+  {id:'w_dyn_lunge', name:'Fentes dynamiques', icon:'⚡', cat:'potentiate', val:30, muscles:['Quadriceps','Fessiers','Fléchisseurs de hanche'], tips:[
+    "Alterne les jambes à un rythme modéré, sans chercher la profondeur maximale.",
+    "Buste droit, gainage actif, genou avant au-dessus de la cheville.",
+    "Prépare les jambes aux fentes et squats de la séance."]},
+  {id:'w_short_plank', name:'Planche courte', icon:'🧱', cat:'potentiate', val:20, muscles:['Abdominaux','Lombaires','Épaules'], tips:[
+    "Avant-bras au sol, corps aligné des talons à la tête, fessiers serrés.",
+    "Quelques secondes suffisent : on active le gainage, on ne le fatigue pas.",
+    "Respire normalement pendant le maintien."]},
+  {id:'w_dead_hang', name:'Suspension passive (barre)', icon:'🧗', cat:'potentiate', val:25, equip:'pullupBar', muscles:['Avant-bras','Dos','Épaules'], tips:[
+    "Suspends-toi bras tendus, épaules relâchées, et respire calmement.",
+    "Décompresse la colonne et réveille la préhension avant les tractions.",
+    "Descends dès que la prise faiblit, pas besoin d'aller à l'échec."]},
+];
+
+/* ---------------- ÉTIREMENTS ----------------
+ * Étirements statiques de fin de séance : 20 à 40 secondes par position,
+ * sans à-coups, jusqu'à la sensation d'étirement et jamais à la douleur.
+ */
+const STRETCH_CATS = {
+  upper: 'Haut du corps',
+  trunk: 'Tronc & dos',
+  lower: 'Bas du corps',
+};
+const STRETCH_LIB = [
+  /* --- Haut du corps --- */
+  {id:'s_chest', name:'Étirement pectoraux (au mur)', icon:'🤸', cat:'upper', val:30, muscles:['Pectoraux'], tips:[
+    "Avant-bras contre un mur ou un chambranle, coude à hauteur d'épaule.",
+    "Tourne doucement le buste à l'opposé jusqu'à sentir l'étirement.",
+    "Si ça tire dans l'avant de l'épaule plutôt que dans le pectoral, baisse le coude."]},
+  {id:'s_rear_delt', name:'Étirement épaule (bras croisé)', icon:'🙆', cat:'upper', val:30, muscles:['Épaules'], tips:[
+    "Amène un bras tendu en travers de la poitrine, l'autre main le maintient.",
+    "Garde l'épaule étirée basse, ne la laisse pas remonter vers l'oreille.",
+    "Change de bras à mi-temps."]},
+  {id:'s_triceps', name:'Étirement triceps (au-dessus de la tête)', icon:'💪', cat:'upper', val:30, muscles:['Triceps'], tips:[
+    "Coude plié derrière la tête, l'autre main pousse doucement le coude vers le bas.",
+    "Garde les côtes basses : évite de cambrer pour gagner de l'amplitude.",
+    "Change de bras à mi-temps."]},
+  {id:'s_biceps', name:'Étirement biceps', icon:'🙌', cat:'upper', val:30, muscles:['Biceps'], tips:[
+    "Bras tendu derrière toi, paume vers l'arrière, main appuyée sur un mur.",
+    "Tourne légèrement le buste à l'opposé du bras étiré.",
+    "Reste dans une sensation d'étirement franche mais confortable."]},
+  {id:'s_forearm_flex', name:'Étirement avant-bras (fléchisseurs)', icon:'✋', cat:'upper', val:25, muscles:['Avant-bras'], tips:[
+    "Bras tendu devant toi paume vers le haut, tire les doigts vers le bas.",
+    "Coude bien tendu pour que l'étirement atteigne tout l'avant-bras.",
+    "Change de côté à mi-temps."]},
+  {id:'s_forearm_ext', name:'Étirement avant-bras (extenseurs)', icon:'🤚', cat:'upper', val:25, muscles:['Avant-bras'], tips:[
+    "Bras tendu devant toi paume vers le bas, tire la main vers toi et vers le bas.",
+    "Complément indispensable des fléchisseurs après les tractions ou le gainage.",
+    "Change de côté à mi-temps."]},
+  {id:'s_lats', name:'Étirement grand dorsal', icon:'🧗', cat:'upper', val:30, muscles:['Dos'], tips:[
+    "Mains en appui haut (mur, table), recule les hanches en laissant le buste descendre.",
+    "Cherche l'étirement sur le côté du dos, sous l'aisselle.",
+    "Respire profondément : chaque expiration laisse descendre un peu plus."]},
+  {id:'s_traps', name:'Étirement trapèzes / nuque', icon:'🧎', cat:'upper', val:25, muscles:['Trapèzes'], tips:[
+    "Incline la tête sur le côté, main opposée qui tire doucement vers le bas.",
+    "L'épaule opposée reste basse, sans remonter.",
+    "Mouvement très doux : la nuque ne supporte pas la force."]},
+
+  /* --- Tronc & dos --- */
+  {id:'s_abs', name:'Étirement abdominaux (cobra)', icon:'🐍', cat:'trunk', val:30, muscles:['Abdominaux'], tips:[
+    "Sur le ventre, pousse le buste vers le haut sur les avant-bras ou les mains.",
+    "Hanches au sol, épaules basses, regard droit devant.",
+    "Redescends si tu sens une compression dans le bas du dos."]},
+  {id:'s_obliques', name:'Étirement obliques', icon:'↔️', cat:'trunk', val:25, muscles:['Obliques'], tips:[
+    "Debout, un bras levé, incline le buste du côté opposé.",
+    "Garde le bassin stable et les deux pieds bien ancrés.",
+    "Change de côté à mi-temps."]},
+  {id:'s_spinal_twist', name:'Torsion vertébrale allongée', icon:'🌀', cat:'trunk', val:30, muscles:['Lombaires','Obliques','Dos'], tips:[
+    "Sur le dos, laisse tomber les genoux pliés d'un côté, bras en croix.",
+    "Garde les deux épaules au sol, regard du côté opposé aux genoux.",
+    "Relâche complètement et respire, change de côté à mi-temps."]},
+  {id:'s_lower_back', name:'Genoux-poitrine (lombaires)', icon:'🤰', cat:'trunk', val:30, muscles:['Lombaires'], tips:[
+    "Sur le dos, ramène les deux genoux vers la poitrine avec les bras.",
+    "Bas du dos plaqué au sol, nuque relâchée.",
+    "Berce-toi doucement de gauche à droite pour masser les lombaires."]},
+  {id:'s_child', name:'Posture de l\'enfant', icon:'🧘', cat:'trunk', val:40, muscles:['Dos','Lombaires','Épaules'], tips:[
+    "À genoux, assieds-toi sur les talons et allonge les bras loin devant.",
+    "Front au sol, épaules relâchées, respiration lente et profonde.",
+    "La position de récupération par excellence en fin de séance."]},
+
+  /* --- Bas du corps --- */
+  {id:'s_quads', name:'Étirement quadriceps (debout)', icon:'🦵', cat:'lower', val:30, muscles:['Quadriceps'], tips:[
+    "Attrape ta cheville derrière toi, talon vers la fesse, genoux serrés.",
+    "Rentre légèrement le bassin pour accentuer sans cambrer.",
+    "Appuie-toi à un mur pour l'équilibre, change de jambe à mi-temps."]},
+  {id:'s_hamstrings', name:'Étirement ischio-jambiers', icon:'🤾', cat:'lower', val:30, muscles:['Ischio-jambiers'], tips:[
+    "Jambe tendue devant toi (talon au sol), penche-toi depuis les hanches.",
+    "Garde le dos long plutôt que de l'arrondir pour aller plus loin.",
+    "Change de jambe à mi-temps."]},
+  {id:'s_glutes', name:'Étirement fessiers (figure 4)', icon:'🍑', cat:'lower', val:30, muscles:['Fessiers','Fessiers (moyen)'], tips:[
+    "Sur le dos, croise une cheville sur le genou opposé et ramène le tout vers toi.",
+    "Garde la nuque et le bas du dos au sol.",
+    "Change de côté à mi-temps."]},
+  {id:'s_hip_flexors', name:'Étirement fléchisseurs de hanche', icon:'🏹', cat:'lower', val:30, muscles:['Fléchisseurs de hanche','Hanches'], tips:[
+    "Fente basse, genou arrière au sol, pousse le bassin vers l'avant.",
+    "Rentre le bassin (fessier serré) : c'est ce qui déclenche vraiment l'étirement.",
+    "Buste droit, change de jambe à mi-temps."]},
+  {id:'s_adductors', name:'Étirement adducteurs (papillon)', icon:'🦋', cat:'lower', val:30, muscles:['Hanches'], tips:[
+    "Assis, plantes de pieds jointes, laisse les genoux descendre vers le sol.",
+    "Dos droit, mains sur les chevilles, coudes qui accompagnent sans forcer.",
+    "Penche-toi légèrement en avant pour accentuer si c'est confortable."]},
+  {id:'s_calves', name:'Étirement mollets (jambe tendue)', icon:'🦶', cat:'lower', val:30, muscles:['Mollets'], tips:[
+    "Face à un mur, jambe arrière tendue, talon bien ancré au sol.",
+    "Avance le bassin vers le mur en gardant le talon plaqué.",
+    "Change de jambe à mi-temps."]},
+  {id:'s_soleus', name:'Étirement soléaire (genou fléchi)', icon:'👣', cat:'lower', val:25, muscles:['Mollets'], tips:[
+    "Même position que pour les mollets, mais genou arrière légèrement fléchi.",
+    "L'étirement descend alors plus bas, vers le tendon d'Achille.",
+    "Change de jambe à mi-temps."]},
+];
+
+/* Combien d'items on retient selon le mode choisi (Court ≈ 3 min, Long ≈ 7 min). */
+const FLEX_PLAN = {
+  short: { raise:1, mobilise:4, potentiate:0, stretches:4 },
+  long:  { raise:2, mobilise:8, potentiate:2, stretches:8 },
+};
+function matchesMuscle(entry, muscle){
+  return (entry.muscles||[]).some(m=>muscle.startsWith(m) || m.startsWith(muscle));
+}
+function shuffled(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+/* Prend jusqu'à `count` entrées : d'abord celles qui ciblent les muscles de la
+   séance, puis, s'il en manque, des entrées générales pour compléter. */
+function pickFlexItems(pool, muscles, count){
+  if(count<=0) return [];
+  const available = pool.filter(e=>hasEquipment(e));
+  const matched = available.filter(e=>muscles.some(m=>matchesMuscle(e,m)));
+  const rest = available.filter(e=>!matched.includes(e));
+  return [...shuffled(matched), ...shuffled(rest)].slice(0, count);
+}
+function toFlexExo(entry, meta, rest){
+  return {libId:null, srcId:entry.id, meta, name:entry.name, icon:entry.icon, type:'time', sets:1, val:entry.val, rest};
+}
 function buildWarmupExos(session){
-  const cfg = FLEX_DURATIONS[settings.warmupMode==='long' ? 'long' : 'short'];
+  const plan = FLEX_PLAN[settings.warmupMode==='long' ? 'long' : 'short'];
   const muscles = getSessionMuscles(session);
-  const picked = []; const usedIds = new Set();
-  muscles.forEach(m=>{
-    if(picked.length >= cfg.maxMuscleItems) return;
-    const w = findWarmupForMuscle(m);
-    if(w && !usedIds.has(w.id)){ usedIds.add(w.id); picked.push(w); }
-  });
-  const base = WARMUP_BASE.map(w=>({libId:null, meta:'warmup', name:w.name, icon:w.icon, type:'time', sets:1, val:cfg.base, rest:5, tips:w.tips}));
-  const specific = picked.map(w=>({libId:null, meta:'warmup', name:w.name, icon:w.icon, type:'time', sets:1, val:cfg.item, rest:5, tips:w.tips}));
-  return [...base, ...specific];
+  const byCat = cat => WARMUP_LIB.filter(w=>w.cat===cat);
+  const picked = [
+    ...pickFlexItems(byCat('raise'), muscles, plan.raise),
+    ...pickFlexItems([...byCat('mobilise'), ...byCat('activate')], muscles, plan.mobilise),
+    ...pickFlexItems(byCat('potentiate'), muscles, plan.potentiate),
+  ];
+  return picked.map(w=>toFlexExo(w, 'warmup', 5));
 }
 function buildStretchExos(session){
-  const cfg = FLEX_DURATIONS[settings.warmupMode==='long' ? 'long' : 'short'];
+  const plan = FLEX_PLAN[settings.warmupMode==='long' ? 'long' : 'short'];
   const muscles = getSessionMuscles(session);
-  const picked = []; const usedIds = new Set();
-  muscles.forEach(m=>{
-    if(picked.length >= cfg.maxMuscleItems) return;
-    const s = findStretchForMuscle(m);
-    if(s && !usedIds.has(s.id)){ usedIds.add(s.id); picked.push(s); }
-  });
-  return picked.map(s=>({libId:null, meta:'stretch', name:s.name, icon:s.icon, type:'time', sets:1, val:cfg.item, rest:8, tips:s.tips}));
+  return pickFlexItems(STRETCH_LIB, muscles, plan.stretches).map(s=>toFlexExo(s, 'stretch', 8));
 }
 
 const EQUIPMENT_LABELS = {
@@ -640,7 +768,7 @@ function loadSessions(){
 }
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
 function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
-function saveCustomExos(a){ try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
+function saveCustomExos(a){ invalidateExoIndex(); try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
 function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, theme:'system', warmup:true, warmupMode:'short'}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, theme:'system', warmup:true, warmupMode:'short'}; } }
 function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
 function loadEquipment(){ try{ return Object.assign({pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}, JSON.parse(localStorage.getItem(LS_EQUIPMENT)||'{}')); }catch(e){ return {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}; } }
@@ -659,7 +787,7 @@ let equipment = loadEquipment();
 let logs = loadLogs();
 let view = 'home'; // home | builder | library | tracking | player
 let builderDraft = null; // session being built
-let editingIndex = null; // index of exo being edited in a sheet
+let libTab = 'exos'; // warmup | exos | stretch
 let sheet = null; // {type:'addExo'|'editExo'|'tips'|'equipment', ...}
 let player = null; // player state
 let updateState = { status:'idle', info:null, error:null }; // idle | checking | upToDate | available | downloading | error
@@ -720,7 +848,20 @@ if(window.matchMedia){
 function allExoLibrary(){ return EXO_LIB.concat(customExos); }
 function hasEquipment(exo){ return !exo.equip || !!equipment[exo.equip]; }
 function availableExoLibrary(){ return allExoLibrary().filter(hasEquipment); }
-function getExoById(id){ return allExoLibrary().find(x=>x.id===id); }
+
+/* Index id -> entrée, reconstruit uniquement quand les exercices perso changent.
+   Couvre aussi l'échauffement et les étirements pour que leurs fiches conseils
+   s'ouvrent exactement comme celles des exercices. */
+let exoIndex = null;
+function invalidateExoIndex(){ exoIndex = null; }
+function getExoById(id){
+  if(!id) return undefined;
+  if(!exoIndex){
+    exoIndex = new Map();
+    [...allExoLibrary(), ...WARMUP_LIB, ...STRETCH_LIB].forEach(e=>exoIndex.set(e.id, e));
+  }
+  return exoIndex.get(id);
+}
 function getTipsFor(id){ const e = getExoById(id); return (e && e.tips && e.tips.length) ? e.tips : GENERIC_TIPS; }
 function getSessionMuscles(session){
   const seen = [];
@@ -806,10 +947,12 @@ function renderHome(){
   }
   return newBtn + sessions.map((s,i)=>{
     const totalSets = s.exos.reduce((a,e)=>a+e.sets,0);
+    // Le dernier repos ne compte pas : la séance s'arrête à la dernière série.
+    const lastRest = s.exos.length ? s.exos[s.exos.length-1].rest : 0;
     const estMin = Math.round(Math.max(0, s.exos.reduce((a,e)=>{
       const work = e.type==='time' ? e.val : e.val*2.5; // estimate ~2.5s per rep
       return a + e.sets*(work+e.rest);
-    },0) - s.exos[s.exos.length-1].rest)/60);
+    },0) - lastRest)/60);
     const muscles = getSessionMuscles(s);
     return `
     <div class="card">
@@ -922,31 +1065,53 @@ function renderBuilderExo(e,i){
 }
 
 /* ---------------- LIBRARY ---------------- */
-function renderLibrary(){
+const LIB_TABS = { warmup:'🔥 Échauffement', exos:'💪 Exercices', stretch:'🧘 Étirements' };
+
+/* Une carte de bibliothèque, commune aux trois onglets. `note` décrit la ligne
+   de détail propre à chaque type (défaut d'un exercice, durée d'un étirement…). */
+function renderLibCard(e, note){
+  const locked = e.equip && !equipment[e.equip];
+  const musclesNote = (e.muscles&&e.muscles.length) ? `<small style="display:block;color:var(--muted);">🎯 ${e.muscles.map(m=>escapeHtml(m)).join(' · ')}</small>` : '';
+  return `<div class="card tight lib-item" style="margin-bottom:8px;${locked?'opacity:.5;':''}" data-tips="${e.id}">
+    <span class="emoji">${e.icon}</span>
+    <div style="flex:1;">
+      <b>${escapeHtml(e.name)}</b>
+      <small>${note}${locked?` · 🔒 ${EQUIPMENT_LABELS[e.equip]}`:''}</small>
+      ${musclesNote}
+    </div>
+    <span class="pill">${locked?'🔒':'💡'}</span>
+    ${e.custom? `<button class="icon-btn" data-del-custom="${e.id}">🗑️</button>` : ''}
+  </div>`;
+}
+function renderLibSection(entries, catLabels, noteFor){
   const cats = {};
-  allExoLibrary().forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
-  let html = `<button class="btn ghost block" data-action="openEquipment" style="margin-bottom:10px;">🎒 Gérer mon équipement</button>
-  <button class="btn accent block" data-action="openCustomExo" style="margin-bottom:14px;">+ Créer un exercice personnalisé</button>`;
-  Object.keys(cats).forEach(cat=>{
-    html += `<div class="cat-title">${escapeHtml(cat)}</div>`;
-    cats[cat].forEach(e=>{
-      const locked = e.equip && !equipment[e.equip];
-      const levelNote = e.level ? ` · ${escapeHtml(e.level)}` : '';
-      const bandNote = e.bandTip ? ' · 🎗️ élastique en option' : '';
-      const musclesNote = (e.muscles&&e.muscles.length) ? `<small style="display:block;color:var(--muted);">🎯 ${e.muscles.map(m=>escapeHtml(m)).join(' · ')}</small>` : '';
-      html += `<div class="card tight lib-item" style="margin-bottom:8px;${locked?'opacity:.5;':''}" data-tips="${e.id}">
-        <span class="emoji">${e.icon}</span>
-        <div style="flex:1;">
-          <b>${escapeHtml(e.name)}</b>
-          <small>${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${e.sets}×${e.val}${e.type==='time'?'s':''}${levelNote}${bandNote}${locked?` · 🔒 ${EQUIPMENT_LABELS[e.equip]}`:''}</small>
-          ${musclesNote}
-        </div>
-        <span class="pill">${locked?'🔒':'💡'}</span>
-        ${e.custom? `<button class="icon-btn" data-del-custom="${e.id}">🗑️</button>` : ''}
-      </div>`;
-    });
-  });
-  return html;
+  entries.forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
+  return Object.keys(cats).map(cat=>
+    `<div class="cat-title">${escapeHtml(catLabels ? catLabels[cat] : cat)}</div>` +
+    cats[cat].map(e=>renderLibCard(e, noteFor(e))).join('')
+  ).join('');
+}
+function renderLibrary(){
+  const tabs = `<nav class="tabs" style="margin:0 0 14px;">${
+    Object.keys(LIB_TABS).map(k=>`<button data-libtab="${k}" class="${libTab===k?'active':''}">${LIB_TABS[k]}</button>`).join('')
+  }</nav>`;
+
+  if(libTab==='warmup'){
+    return tabs + `<p style="margin:0 0 12px;">Mouvements dynamiques à faire avant l'effort. L'app en sélectionne automatiquement selon les muscles de ta séance — tu peux aussi les consulter ici.</p>`
+      + renderLibSection(WARMUP_LIB, WARMUP_CATS, e=>`${e.val}s · dynamique`);
+  }
+  if(libTab==='stretch'){
+    return tabs + `<p style="margin:0 0 12px;">Étirements statiques de fin de séance : garde chaque position sans à-coups, jusqu'à la sensation d'étirement, jamais à la douleur.</p>`
+      + renderLibSection(STRETCH_LIB, STRETCH_CATS, e=>`${e.val}s de maintien`);
+  }
+  return tabs
+    + `<button class="btn ghost block" data-action="openEquipment" style="margin-bottom:10px;">🎒 Gérer mon équipement</button>
+       <button class="btn accent block" data-action="openCustomExo" style="margin-bottom:14px;">+ Créer un exercice personnalisé</button>`
+    + renderLibSection(allExoLibrary(), null, e=>{
+        const levelNote = e.level ? ` · ${escapeHtml(e.level)}` : '';
+        const bandNote = e.bandTip ? ' · 🎗️ élastique en option' : '';
+        return `${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${e.sets}×${e.val}${e.type==='time'?'s':''}${levelNote}${bandNote}`;
+      });
 }
 
 /* ---------------- TRACKING ---------------- */
@@ -1041,8 +1206,8 @@ function renderSheet(){
     </div></div>`;
   }
   if(sheet.type==='tips'){
-    const exo = sheet.inlineExo || getExoById(sheet.exoId) || {name:'Exercice', icon:'⭐'};
-    const tips = sheet.inlineExo ? (sheet.inlineExo.tips||GENERIC_TIPS) : getTipsFor(sheet.exoId);
+    const exo = getExoById(sheet.exoId) || {name:'Exercice', icon:'⭐'};
+    const tips = getTipsFor(sheet.exoId);
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <div class="row" style="margin-bottom:4px;">
         <span style="font-size:30px;">${exo.icon}</span>
@@ -1085,7 +1250,7 @@ function renderSheet(){
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <h3>📤 Exporter mes données</h3>
       <p style="margin-bottom:10px;">Copie ce texte et garde-le quelque part (note, email, fichier...) pour le récupérer plus tard ou sur un autre appareil via "Importer".</p>
-      <textarea readonly id="exportArea" style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${escapeHtml(json)}</textarea>
+      <textarea readonly id="exportArea" class="code">${escapeHtml(json)}</textarea>
       <div class="row" style="margin-top:12px;gap:10px;">
         <button class="btn ghost block" data-action="closeSheet">Fermer</button>
         <button class="btn primary block" data-action="copyExport">📋 Copier</button>
@@ -1096,7 +1261,7 @@ function renderSheet(){
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <h3>📥 Importer des données</h3>
       <p style="margin-bottom:10px;">Colle ici le texte exporté depuis un autre appareil. <b>Cela remplacera tes séances, exercices personnalisés, équipement et suivi actuels.</b></p>
-      <textarea id="importArea" placeholder="Colle le JSON exporté ici..." style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;"></textarea>
+      <textarea id="importArea" class="code" placeholder="Colle le JSON exporté ici..."></textarea>
       <div class="row" style="margin-top:12px;gap:10px;">
         <button class="btn ghost block" data-action="closeSheet">Annuler</button>
         <button class="btn primary block" data-action="doImport">📥 Importer</button>
@@ -1153,14 +1318,16 @@ function flattenSteps(session){
 }
 
 function startSession(idx){
+  if(!sessions[idx].exos.length){ toast('Cette séance est vide.'); return; }
   const session = JSON.parse(JSON.stringify(sessions[idx]));
   if(settings.warmup){
-    const warmupExos = buildWarmupExos(sessions[idx]);
-    const stretchExos = buildStretchExos(sessions[idx]);
-    session.exos = [...warmupExos, ...session.exos, ...stretchExos];
+    session.exos = [
+      ...buildWarmupExos(sessions[idx]),
+      ...session.exos,
+      ...buildStretchExos(sessions[idx]),
+    ];
   }
   const steps = flattenSteps(session);
-  if(steps.length===0){ toast('Cette séance est vide.'); return; }
   player = {
     session, steps, stepIdx:0,
     phase:'work', // work | rest | done
@@ -1370,7 +1537,7 @@ function renderPlayer(){
         </div>
         <label class="field" style="margin:12px 0 0;">
           <span>Note (optionnel)</span>
-          <textarea id="reviewNote" rows="3" placeholder="Ex : bras fatigués sur les dernières séries, à refaire avec plus de repos…" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;">${escapeHtml(player.note||'')}</textarea>
+          <textarea id="reviewNote" rows="3" placeholder="Ex : bras fatigués sur les dernières séries, à refaire avec plus de repos…">${escapeHtml(player.note||'')}</textarea>
         </label>
       </div>
       <div class="row" style="margin-top:6px;gap:10px;">
@@ -1401,7 +1568,7 @@ function renderPlayer(){
       centerHtml = `<div class="big-emoji">${st.exo.icon}</div><div class="timer glow-work">${formatTime(player.remaining)}</div>`;
       controlsHtml = `
         <div class="controls">
-          ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">▶ Reprendre</button>`}
+          ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">${player.endAt===null?'▶ Démarrer':'▶ Reprendre'}</button>`}
           <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
           <button class="btn ghost" data-action="skip">⏭ Passer</button>
         </div>`;
@@ -1421,7 +1588,7 @@ function renderPlayer(){
         <button class="btn ghost sm" data-action="restPlus">+15s</button>
       </div>
       <div class="controls">
-        ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">▶ Reprendre</button>`}
+        ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">${player.endAt===null?'▶ Démarrer':'▶ Reprendre'}</button>`}
         <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
         <button class="btn ghost" data-action="skip">⏭ Passer le repos</button>
       </div>`;
@@ -1435,10 +1602,10 @@ function renderPlayer(){
       <span class="pill">${player.stepIdx+1}/${totalSteps}</span>
     </div>
     <div class="progress-outer"><div class="progress-inner" style="width:${progressPct}%"></div></div>
-    <span class="phase-tag ${player.phase}">${player.phase==='work'?'EN COURS':'REPOS'}</span>
+    <span class="phase-tag ${player.phase}">${phaseLabel(st)}</span>
     <div class="exo-name">${escapeHtml(st.exo.name)}</div>
-    <div class="set-count">Série ${st.setIndex+1} / ${st.exo.sets}</div>
-    ${st.exo.libId ? `<button class="tips-btn" data-tips="${st.exo.libId}">💡 Conseils &amp; sécurité</button>` : (st.exo.tips ? `<button class="tips-btn" data-action="openStepTips">💡 Conseils &amp; sécurité</button>` : '')}
+    ${st.exo.meta ? '' : `<div class="set-count">Série ${st.setIndex+1} / ${st.exo.sets}</div>`}
+    ${st.exo.libId || st.exo.srcId ? `<button class="tips-btn" data-tips="${st.exo.libId || st.exo.srcId}">💡 Conseils &amp; sécurité</button>` : ''}
     ${centerHtml}
     ${controlsHtml}
     ${nextLabel? `<div class="next-preview">${nextLabel}</div>` : ''}
@@ -1452,6 +1619,13 @@ function updatePlayerDom(){
   if(timerEl) timerEl.textContent = formatTime(player.remaining);
   const progressEl = root.querySelector('.progress-inner');
   if(progressEl) progressEl.style.width = Math.round((player.stepIdx/player.steps.length)*100)+'%';
+}
+
+function phaseLabel(step){
+  if(player.phase==='rest') return 'REPOS';
+  if(step.exo.meta==='warmup') return 'ÉCHAUFFEMENT';
+  if(step.exo.meta==='stretch') return 'ÉTIREMENT';
+  return 'EN COURS';
 }
 
 function formatTime(sec){
@@ -1471,6 +1645,11 @@ function attachEvents(){
   app.querySelectorAll('[data-nav]').forEach(b=>b.onclick = ()=>{
     view = b.getAttribute('data-nav');
     if(view==='builder' && !builderDraft) builderDraft = newDraft();
+    render();
+  });
+
+  app.querySelectorAll('[data-libtab]').forEach(b=>b.onclick = ()=>{
+    libTab = b.getAttribute('data-libtab');
     render();
   });
 
@@ -1542,7 +1721,6 @@ function attachEvents(){
     openExport: ()=>{ sheet={type:'export'}; render(); },
     openImport: ()=>{ sheet={type:'import'}; render(); },
     openUpdate: ()=>{ sheet={type:'update'}; updateState={status:'idle', info:null, error:null}; render(); },
-    openStepTips: ()=>{ sheet={type:'tips', inlineExo:currentStep().exo}; render(); },
     cycleTheme: ()=>{
       const order = ['system','light','dark'];
       settings.theme = order[(order.indexOf(settings.theme)+1) % order.length];
