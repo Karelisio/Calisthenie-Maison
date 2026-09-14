@@ -935,6 +935,21 @@ function beep(freq, dur, vol){
 }
 function vibrate(pattern){
   if(!settings.vibrate) return;
+  if(isNativeApp()){
+    /* Un chrono (setInterval) n'est pas un "geste utilisateur" : la
+       Vibration API web est silencieusement ignorée dans ce cas (règle du
+       navigateur, valable aussi dans la WebView Android), alors qu'une
+       bonne partie des vibrations de l'app partent justement du minuteur.
+       On passe donc par le module natif Haptics, en rejouant le motif
+       [vibre, pause, vibre, ...] via une suite d'appels simples. */
+    const seq = Array.isArray(pattern) ? pattern : [pattern];
+    let at = 0;
+    seq.forEach((ms, i)=>{
+      if(i % 2 === 0){ setTimeout(()=>{ callNativePlugin('Haptics', 'vibrate', {duration: ms}).catch(()=>{}); }, at); }
+      at += ms;
+    });
+    return;
+  }
   try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
 
