@@ -225,6 +225,7 @@
   .timer{font-size:76px;font-weight:500;font-variant-numeric:tabular-nums;margin:6px 0 14px;letter-spacing:1px;}
   .timer.glow-work{color:var(--accent);}
   .timer.glow-rest{color:var(--accent2);}
+  .side-switch-label{font-size:16px;font-weight:600;color:var(--accent2);margin:-8px 0 14px;}
   .reps-target{font-size:56px;font-weight:500;margin:6px 0 14px;color:var(--accent);}
   .reps-target span{font-size:22px;color:var(--muted);font-weight:500;}
   .controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
@@ -332,11 +333,11 @@ const EXO_LIB = [
    "Même technique que le squat classique, avec une poussée explosive vers le haut.",
    "Réception souple, genoux fléchis, pieds à plat pour amortir le choc.",
    "À éviter en cas de douleur aux genoux ou aux chevilles (fort impact)."]},
- {id:'lunge', name:'Fentes avant', cat:'Bas du corps', icon:'🦿', type:'reps', sets:3, val:12, rest:45, level:'Intermédiaire', bandTip:"Place l'élastique juste au-dessus des genoux pour un travail supplémentaire de stabilité des hanches à chaque pas.", muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
+ {id:'lunge', name:'Fentes avant', cat:'Bas du corps', icon:'🦿', type:'reps', sets:3, val:12, rest:45, level:'Intermédiaire', lunge:true, bandTip:"Place l'élastique juste au-dessus des genoux pour un travail supplémentaire de stabilité des hanches à chaque pas.", muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
    "Grand pas en avant, descends jusqu'à 90° aux deux genoux.",
    "Le genou avant reste au-dessus de la cheville, jamais au-delà des orteils.",
    "Le genou arrière frôle le sol sans le percuter, remonte en poussant sur le talon avant."]},
- {id:'jump_lunge', name:'Fentes sautées', cat:'Bas du corps', icon:'⚡', type:'reps', sets:3, val:10, rest:60, muscles:['Quadriceps','Fessiers','Mollets'], tips:[
+ {id:'jump_lunge', name:'Fentes sautées', cat:'Bas du corps', icon:'⚡', type:'reps', sets:3, val:10, rest:60, lunge:true, muscles:['Quadriceps','Fessiers','Mollets'], tips:[
    "Alterne les jambes en l'air, réception souple et contrôlée à chaque saut.",
    "Buste droit, gainage actif pour garder l'équilibre.",
    "Impact élevé sur les genoux et chevilles : à réduire en cas de gêne articulaire."]},
@@ -481,7 +482,7 @@ const WARMUP_LIB = [
     "Doigts entrelacés ou poings fermés, décris des cercles dans les deux sens.",
     "Ajoute quelques ouvertures/fermetures de mains pour la préhension.",
     "Indispensable avant tout appui sur les mains (pompes, gainage) ou suspension."]},
-  {id:'w_ankles', name:'Rotations de chevilles', icon:'🦶', cat:'mobilise', val:20, muscles:['Mollets'], tips:[
+  {id:'w_ankles', name:'Rotations de chevilles', icon:'🦶', cat:'mobilise', val:20, sides:true, muscles:['Mollets'], tips:[
     "En appui sur une jambe, décris des cercles avec la pointe du pied.",
     "Change de côté à mi-temps, appuie-toi contre un mur si besoin.",
     "Prépare les chevilles aux squats profonds et aux réceptions de sauts."]},
@@ -509,11 +510,11 @@ const WARMUP_LIB = [
     "Mains sur les hanches, décris de grands cercles avec le bassin.",
     "Quelques tours dans un sens puis dans l'autre.",
     "Genoux légèrement fléchis pour protéger le bas du dos."]},
-  {id:'w_leg_swings', name:'Balancés de jambe avant/arrière', icon:'🦿', cat:'mobilise', val:25, muscles:['Ischio-jambiers','Fléchisseurs de hanche','Fessiers'], tips:[
+  {id:'w_leg_swings', name:'Balancés de jambe avant/arrière', icon:'🦿', cat:'mobilise', val:25, sides:true, muscles:['Ischio-jambiers','Fléchisseurs de hanche','Fessiers'], tips:[
     "Appuie-toi à un mur et balance une jambe d'avant en arrière, tendue mais relâchée.",
     "Augmente l'amplitude sur les dernières répétitions, jamais d'un coup sec.",
     "Change de jambe à mi-temps, buste stable tout du long."]},
-  {id:'w_leg_swings_side', name:'Balancés de jambe latéraux', icon:'↔️', cat:'mobilise', val:25, muscles:['Hanches','Fessiers (moyen)','Fessiers'], tips:[
+  {id:'w_leg_swings_side', name:'Balancés de jambe latéraux', icon:'↔️', cat:'mobilise', val:25, sides:true, muscles:['Hanches','Fessiers (moyen)','Fessiers'], tips:[
     "Face à un mur, balance une jambe de gauche à droite devant toi.",
     "Garde le bassin stable, le mouvement vient de la hanche.",
     "Prépare les hanches aux fentes et aux squats larges."]},
@@ -525,7 +526,7 @@ const WARMUP_LIB = [
     "Debout, penche-toi, pose les mains au sol et avance-les jusqu'en planche.",
     "Reviens en marchant avec les mains vers les pieds, jambes presque tendues.",
     "Mobilise la chaîne arrière et prépare les épaules à supporter ton poids."]},
-  {id:'w_worlds_greatest', name:'Fente + rotation (world\'s greatest)', icon:'🌍', cat:'mobilise', val:40, muscles:['Fléchisseurs de hanche','Hanches','Obliques','Ischio-jambiers'], tips:[
+  {id:'w_worlds_greatest', name:'Fente + rotation (world\'s greatest)', icon:'🌍', cat:'mobilise', val:40, lunge:true, muscles:['Fléchisseurs de hanche','Hanches','Obliques','Ischio-jambiers'], tips:[
     "Grande fente avant, main intérieure au sol, puis ouvre le buste bras vers le ciel.",
     "Marque une pause en position ouverte avant de changer de côté.",
     "Un seul mouvement qui mobilise hanches, colonne et épaules — le plus rentable."]},
@@ -569,7 +570,7 @@ const WARMUP_LIB = [
     "Descente lente et contrôlée, amplitude progressive d'une rep à l'autre.",
     "Genoux dans l'axe des pieds, talons ancrés au sol.",
     "3-4 répétitions suffisent pour préparer le mouvement."]},
-  {id:'w_dyn_lunge', name:'Fentes dynamiques', icon:'⚡', cat:'potentiate', val:30, muscles:['Quadriceps','Fessiers','Fléchisseurs de hanche'], tips:[
+  {id:'w_dyn_lunge', name:'Fentes dynamiques', icon:'⚡', cat:'potentiate', val:30, lunge:true, muscles:['Quadriceps','Fessiers','Fléchisseurs de hanche'], tips:[
     "Alterne les jambes à un rythme modéré, sans chercher la profondeur maximale.",
     "Buste droit, gainage actif, genou avant au-dessus de la cheville.",
     "Prépare les jambes aux fentes et squats de la séance."]},
@@ -598,11 +599,11 @@ const STRETCH_LIB = [
     "Avant-bras contre un mur ou un chambranle, coude à hauteur d'épaule.",
     "Tourne doucement le buste à l'opposé jusqu'à sentir l'étirement.",
     "Si ça tire dans l'avant de l'épaule plutôt que dans le pectoral, baisse le coude."]},
-  {id:'s_rear_delt', name:'Étirement épaule (bras croisé)', icon:'🙆', cat:'upper', val:30, muscles:['Épaules'], tips:[
+  {id:'s_rear_delt', name:'Étirement épaule (bras croisé)', icon:'🙆', cat:'upper', val:30, sides:true, muscles:['Épaules'], tips:[
     "Amène un bras tendu en travers de la poitrine, l'autre main le maintient.",
     "Garde l'épaule étirée basse, ne la laisse pas remonter vers l'oreille.",
     "Change de bras à mi-temps."]},
-  {id:'s_triceps', name:'Étirement triceps (au-dessus de la tête)', icon:'💪', cat:'upper', val:30, muscles:['Triceps'], tips:[
+  {id:'s_triceps', name:'Étirement triceps (au-dessus de la tête)', icon:'💪', cat:'upper', val:30, sides:true, muscles:['Triceps'], tips:[
     "Coude plié derrière la tête, l'autre main pousse doucement le coude vers le bas.",
     "Garde les côtes basses : évite de cambrer pour gagner de l'amplitude.",
     "Change de bras à mi-temps."]},
@@ -610,11 +611,11 @@ const STRETCH_LIB = [
     "Bras tendu derrière toi, paume vers l'arrière, main appuyée sur un mur.",
     "Tourne légèrement le buste à l'opposé du bras étiré.",
     "Reste dans une sensation d'étirement franche mais confortable."]},
-  {id:'s_forearm_flex', name:'Étirement avant-bras (fléchisseurs)', icon:'✋', cat:'upper', val:25, muscles:['Avant-bras'], tips:[
+  {id:'s_forearm_flex', name:'Étirement avant-bras (fléchisseurs)', icon:'✋', cat:'upper', val:25, sides:true, muscles:['Avant-bras'], tips:[
     "Bras tendu devant toi paume vers le haut, tire les doigts vers le bas.",
     "Coude bien tendu pour que l'étirement atteigne tout l'avant-bras.",
     "Change de côté à mi-temps."]},
-  {id:'s_forearm_ext', name:'Étirement avant-bras (extenseurs)', icon:'🤚', cat:'upper', val:25, muscles:['Avant-bras'], tips:[
+  {id:'s_forearm_ext', name:'Étirement avant-bras (extenseurs)', icon:'🤚', cat:'upper', val:25, sides:true, muscles:['Avant-bras'], tips:[
     "Bras tendu devant toi paume vers le bas, tire la main vers toi et vers le bas.",
     "Complément indispensable des fléchisseurs après les tractions ou le gainage.",
     "Change de côté à mi-temps."]},
@@ -632,11 +633,11 @@ const STRETCH_LIB = [
     "Sur le ventre, pousse le buste vers le haut sur les avant-bras ou les mains.",
     "Hanches au sol, épaules basses, regard droit devant.",
     "Redescends si tu sens une compression dans le bas du dos."]},
-  {id:'s_obliques', name:'Étirement obliques', icon:'↔️', cat:'trunk', val:25, muscles:['Obliques'], tips:[
+  {id:'s_obliques', name:'Étirement obliques', icon:'↔️', cat:'trunk', val:25, sides:true, muscles:['Obliques'], tips:[
     "Debout, un bras levé, incline le buste du côté opposé.",
     "Garde le bassin stable et les deux pieds bien ancrés.",
     "Change de côté à mi-temps."]},
-  {id:'s_spinal_twist', name:'Torsion vertébrale allongée', icon:'🌀', cat:'trunk', val:30, muscles:['Lombaires','Obliques','Dos'], tips:[
+  {id:'s_spinal_twist', name:'Torsion vertébrale allongée', icon:'🌀', cat:'trunk', val:30, sides:true, muscles:['Lombaires','Obliques','Dos'], tips:[
     "Sur le dos, laisse tomber les genoux pliés d'un côté, bras en croix.",
     "Garde les deux épaules au sol, regard du côté opposé aux genoux.",
     "Relâche complètement et respire, change de côté à mi-temps."]},
@@ -650,19 +651,19 @@ const STRETCH_LIB = [
     "La position de récupération par excellence en fin de séance."]},
 
   /* --- Bas du corps --- */
-  {id:'s_quads', name:'Étirement quadriceps (debout)', icon:'🦵', cat:'lower', val:30, muscles:['Quadriceps'], tips:[
+  {id:'s_quads', name:'Étirement quadriceps (debout)', icon:'🦵', cat:'lower', val:30, sides:true, muscles:['Quadriceps'], tips:[
     "Attrape ta cheville derrière toi, talon vers la fesse, genoux serrés.",
     "Rentre légèrement le bassin pour accentuer sans cambrer.",
     "Appuie-toi à un mur pour l'équilibre, change de jambe à mi-temps."]},
-  {id:'s_hamstrings', name:'Étirement ischio-jambiers', icon:'🤾', cat:'lower', val:30, muscles:['Ischio-jambiers'], tips:[
+  {id:'s_hamstrings', name:'Étirement ischio-jambiers', icon:'🤾', cat:'lower', val:30, sides:true, muscles:['Ischio-jambiers'], tips:[
     "Jambe tendue devant toi (talon au sol), penche-toi depuis les hanches.",
     "Garde le dos long plutôt que de l'arrondir pour aller plus loin.",
     "Change de jambe à mi-temps."]},
-  {id:'s_glutes', name:'Étirement fessiers (figure 4)', icon:'🍑', cat:'lower', val:30, muscles:['Fessiers','Fessiers (moyen)'], tips:[
+  {id:'s_glutes', name:'Étirement fessiers (figure 4)', icon:'🍑', cat:'lower', val:30, sides:true, muscles:['Fessiers','Fessiers (moyen)'], tips:[
     "Sur le dos, croise une cheville sur le genou opposé et ramène le tout vers toi.",
     "Garde la nuque et le bas du dos au sol.",
     "Change de côté à mi-temps."]},
-  {id:'s_hip_flexors', name:'Étirement fléchisseurs de hanche', icon:'🏹', cat:'lower', val:30, muscles:['Fléchisseurs de hanche','Hanches'], tips:[
+  {id:'s_hip_flexors', name:'Étirement fléchisseurs de hanche', icon:'🏹', cat:'lower', val:30, sides:true, lunge:true, muscles:['Fléchisseurs de hanche','Hanches'], tips:[
     "Fente basse, genou arrière au sol, pousse le bassin vers l'avant.",
     "Rentre le bassin (fessier serré) : c'est ce qui déclenche vraiment l'étirement.",
     "Buste droit, change de jambe à mi-temps."]},
@@ -670,11 +671,11 @@ const STRETCH_LIB = [
     "Assis, plantes de pieds jointes, laisse les genoux descendre vers le sol.",
     "Dos droit, mains sur les chevilles, coudes qui accompagnent sans forcer.",
     "Penche-toi légèrement en avant pour accentuer si c'est confortable."]},
-  {id:'s_calves', name:'Étirement mollets (jambe tendue)', icon:'🦶', cat:'lower', val:30, muscles:['Mollets'], tips:[
+  {id:'s_calves', name:'Étirement mollets (jambe tendue)', icon:'🦶', cat:'lower', val:30, sides:true, muscles:['Mollets'], tips:[
     "Face à un mur, jambe arrière tendue, talon bien ancré au sol.",
     "Avance le bassin vers le mur en gardant le talon plaqué.",
     "Change de jambe à mi-temps."]},
-  {id:'s_soleus', name:'Étirement soléaire (genou fléchi)', icon:'👣', cat:'lower', val:25, muscles:['Mollets'], tips:[
+  {id:'s_soleus', name:'Étirement soléaire (genou fléchi)', icon:'👣', cat:'lower', val:25, sides:true, muscles:['Mollets'], tips:[
     "Même position que pour les mollets, mais genou arrière légèrement fléchi.",
     "L'étirement descend alors plus bas, vers le tendon d'Achille.",
     "Change de jambe à mi-temps."]},
@@ -693,11 +694,14 @@ function shuffled(arr){
   for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
 }
+/* Vrai si l'exercice est un mouvement en fente, à exclure quand l'utilisateur
+   a désactivé ce type d'exercice (ex : gêne au genou). */
+function isLungeBlocked(e){ return !!(settings.avoidLunges && e.lunge); }
 /* Prend jusqu'à `count` entrées : d'abord celles qui ciblent les muscles de la
    séance, puis, s'il en manque, des entrées générales pour compléter. */
 function pickFlexItems(pool, muscles, count){
   if(count<=0) return [];
-  const available = pool.filter(e=>hasEquipment(e));
+  const available = pool.filter(e=>hasEquipment(e) && !isLungeBlocked(e));
   const matched = available.filter(e=>muscles.some(m=>matchesMuscle(e,m)));
   const rest = available.filter(e=>!matched.includes(e));
   return [...shuffled(matched), ...shuffled(rest)].slice(0, count);
@@ -705,8 +709,12 @@ function pickFlexItems(pool, muscles, count){
 /* Temps de transition entre deux mouvements : de quoi changer de position,
    se replacer au sol ou attraper la barre sans courir après le chrono. */
 const FLEX_REST = { warmup: 12, stretch: 15 };
+/* Pause automatique à mi-mouvement pour les exercices "sides" (un côté puis
+   l'autre) : le temps de vraiment changer de position sans courir après le
+   chrono, plutôt qu'un simple bip qu'il faut suivre du coin de l'œil. */
+const SIDE_SWITCH_SEC = 5;
 function toFlexExo(entry, meta, rest){
-  return {libId:null, srcId:entry.id, meta, name:entry.name, icon:entry.icon, type:'time', sets:1, val:entry.val, rest};
+  return {libId:null, srcId:entry.id, meta, name:entry.name, icon:entry.icon, type:'time', sets:1, val:entry.val, rest, sides:!!entry.sides};
 }
 function buildWarmupExos(session){
   const plan = FLEX_PLAN[settings.warmupMode==='long' ? 'long' : 'short'];
@@ -772,7 +780,7 @@ function loadSessions(){
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
 function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
 function saveCustomExos(a){ invalidateExoIndex(); try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
-function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, theme:'system', warmup:true, warmupMode:'short'}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, theme:'system', warmup:true, warmupMode:'short'}; } }
+function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, theme:'system', warmup:true, warmupMode:'short', avoidLunges:false}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, theme:'system', warmup:true, warmupMode:'short', avoidLunges:false}; } }
 function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
 function loadEquipment(){ try{ return Object.assign({pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}, JSON.parse(localStorage.getItem(LS_EQUIPMENT)||'{}')); }catch(e){ return {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}; } }
 function saveEquipment(eq){ try{ localStorage.setItem(LS_EQUIPMENT, JSON.stringify(eq)); }catch(e){} }
@@ -850,7 +858,7 @@ if(window.matchMedia){
 
 function allExoLibrary(){ return EXO_LIB.concat(customExos); }
 function hasEquipment(exo){ return !exo.equip || !!equipment[exo.equip]; }
-function availableExoLibrary(){ return allExoLibrary().filter(hasEquipment); }
+function availableExoLibrary(){ return allExoLibrary().filter(e=>hasEquipment(e) && !isLungeBlocked(e)); }
 
 /* Index id -> entrée, reconstruit uniquement quand les exercices perso changent.
    Couvre aussi l'échauffement et les étirements pour que leurs fiches conseils
@@ -1080,16 +1088,20 @@ const LIB_TABS = { warmup:'🔥 Échauffement', exos:'💪 Exercices', stretch:'
 /* Une carte de bibliothèque, commune aux trois onglets. `note` décrit la ligne
    de détail propre à chaque type (défaut d'un exercice, durée d'un étirement…). */
 function renderLibCard(e, note){
-  const locked = e.equip && !equipment[e.equip];
+  const equipLocked = e.equip && !equipment[e.equip];
+  const lungeLocked = isLungeBlocked(e);
+  const locked = equipLocked || lungeLocked;
+  const lockNote = equipLocked ? ` · 🔒 ${EQUIPMENT_LABELS[e.equip]}` : (lungeLocked ? ` · 🦵 Désactivé (genoux)` : '');
+  const lockIcon = equipLocked ? '🔒' : (lungeLocked ? '🦵' : '💡');
   const musclesNote = (e.muscles&&e.muscles.length) ? `<small style="display:block;color:var(--muted);">🎯 ${e.muscles.map(m=>escapeHtml(m)).join(' · ')}</small>` : '';
   return `<div class="card tight lib-item" style="margin-bottom:8px;${locked?'opacity:.5;':''}" data-tips="${e.id}">
     <span class="emoji">${e.icon}</span>
     <div style="flex:1;">
       <b>${escapeHtml(e.name)}</b>
-      <small>${note}${locked?` · 🔒 ${EQUIPMENT_LABELS[e.equip]}`:''}</small>
+      <small>${note}${lockNote}</small>
       ${musclesNote}
     </div>
-    <span class="pill">${locked?'🔒':'💡'}</span>
+    <span class="pill">${lockIcon}</span>
     ${e.custom? `<button class="icon-btn" data-del-custom="${e.id}">🗑️</button>` : ''}
   </div>`;
 }
@@ -1176,7 +1188,8 @@ function renderSheet(){
   if(sheet.type==='addExo'){
     const cats = {};
     availableExoLibrary().forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
-    const lockedCount = allExoLibrary().length - availableExoLibrary().length;
+    const equipLockedCount = allExoLibrary().filter(e=>!hasEquipment(e)).length;
+    const lungeLockedCount = allExoLibrary().filter(isLungeBlocked).length;
     let items = '';
     Object.keys(cats).forEach(cat=>{
       items += `<div class="cat-title">${escapeHtml(cat)}</div>`;
@@ -1190,7 +1203,8 @@ function renderSheet(){
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <h3>Choisir un exercice</h3>
       ${items}
-      ${lockedCount>0? `<p style="margin:12px 2px 0;">🔒 ${lockedCount} exercice${lockedCount>1?'s':''} nécessitant du matériel non activé. <button class="tips-btn" data-action="openEquipment" style="margin:8px 0 0;">🎒 Gérer mon équipement</button></p>` : ''}
+      ${equipLockedCount>0? `<p style="margin:12px 2px 0;">🔒 ${equipLockedCount} exercice${equipLockedCount>1?'s':''} nécessitant du matériel non activé. <button class="tips-btn" data-action="openEquipment" style="margin:8px 0 0;">🎒 Gérer mon équipement</button></p>` : ''}
+      ${lungeLockedCount>0? `<p style="margin:12px 2px 0;">🦵 ${lungeLockedCount} exercice${lungeLockedCount>1?'s':''} en fente désactivé${lungeLockedCount>1?'s':''} (option "Éviter les fentes").</p>` : ''}
       <button class="btn ghost block" style="margin-top:12px;" data-action="closeSheet">Fermer</button>
     </div></div>`;
   }
@@ -1252,6 +1266,15 @@ function renderSheet(){
       <h3>🎒 Mon équipement</h3>
       <p style="margin-bottom:6px;">Active ce que tu as chez toi pour débloquer les exercices correspondants.</p>
       ${rows}
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+        <div class="row between" style="padding:12px 4px;">
+          <div>
+            <b style="font-size:15px;">🦵 Éviter les fentes</b>
+            <div style="font-size:12px;color:var(--muted);">Désactive les fentes (exercices, échauffement, étirements) en cas de gêne au genou.</div>
+          </div>
+          <button class="btn sm ${settings.avoidLunges?'accent':'ghost'}" data-action="toggleAvoidLunges">${settings.avoidLunges?'✓ Activé':'Désactivé'}</button>
+        </div>
+      </div>
       <button class="btn ghost block" style="margin-top:18px;" data-action="closeSheet">Fermer</button>
     </div></div>`;
   }
@@ -1327,9 +1350,19 @@ function flattenSteps(session){
   return steps;
 }
 
+/* Vrai si cet exercice de séance (référencé par libId) est une fente
+   désactivée via "Éviter les fentes". */
+function isBlockedExo(e){
+  const src = e.libId ? getExoById(e.libId) : null;
+  return isLungeBlocked(src||{});
+}
 function startSession(idx){
   if(!sessions[idx].exos.length){ toast('Cette séance est vide.'); return; }
   const session = JSON.parse(JSON.stringify(sessions[idx]));
+  if(settings.avoidLunges){
+    session.exos = session.exos.filter(e=>!isBlockedExo(e));
+    if(!session.exos.length){ toast('Cette séance ne contient que des fentes, désactivées dans "Éviter les fentes".'); return; }
+  }
   if(settings.warmup){
     session.exos = [
       ...buildWarmupExos(sessions[idx]),
@@ -1346,7 +1379,9 @@ function startSession(idx){
     endAt:null,
     intervalId:null,
     restDuration:null,
-    beepedAt:{}
+    beepedAt:{},
+    sideBreak:null, // {remaining, endAt, resumeRemaining} pendant la pause "changez de côté"
+    sideSwitchDone:false
   };
   view = 'player';
   render();
@@ -1363,17 +1398,60 @@ function startCountdown(seconds){
   player.running = true;
   player.endAt = Date.now() + seconds*1000;
   player.beepedAt = {};
+  player.sideBreak = null;
+  player.sideSwitchDone = false;
   clearTick();
   player.intervalId = setInterval(tick, 200);
   render();
 }
 
+/* Bascule à mi-mouvement vers une petite pause "changez de côté" pour les
+   exercices marqués `sides`, plutôt qu'un simple bip à suivre à l'œil. */
+function triggerSideBreak(remainingAtHalf){
+  player.sideSwitchDone = true;
+  beep(700,150,0.15); vibrate([50,40,50]);
+  player.sideBreak = { remaining: SIDE_SWITCH_SEC, endAt: Date.now()+SIDE_SWITCH_SEC*1000, resumeRemaining: remainingAtHalf };
+  render();
+}
+function skipSideBreak(){
+  if(!player.sideBreak) return;
+  const resumeRemaining = player.sideBreak.resumeRemaining;
+  player.sideBreak = null;
+  player.remaining = resumeRemaining;
+  if(player.running){ player.endAt = Date.now() + resumeRemaining*1000; }
+  render();
+}
+
 function tick(){
   if(!player || !player.running) return;
+  if(player.sideBreak){
+    const remainingMs = player.sideBreak.endAt - Date.now();
+    const remaining = Math.max(0, Math.ceil(remainingMs/1000));
+    if(remaining !== player.sideBreak.remaining){
+      player.sideBreak.remaining = remaining;
+      if(remaining<=2 && remaining>0) beep(700,90,0.1);
+      updatePlayerDom();
+    }
+    if(remainingMs<=0){
+      const resumeRemaining = player.sideBreak.resumeRemaining;
+      player.sideBreak = null;
+      beep(1000,150,0.15); vibrate(80);
+      player.remaining = resumeRemaining;
+      player.endAt = Date.now() + resumeRemaining*1000;
+      render();
+    }
+    return;
+  }
   const remainingMs = player.endAt - Date.now();
   const remaining = Math.max(0, Math.ceil(remainingMs/1000));
   if(remaining !== player.remaining){
     player.remaining = remaining;
+    const st = currentStep();
+    if(player.phase==='work' && st.exo.type==='time' && st.exo.sides && !player.sideSwitchDone
+       && remaining>0 && remaining<=Math.floor(st.exo.val/2)){
+      triggerSideBreak(remaining);
+      return;
+    }
     if(remaining<=3 && remaining>0 && !player.beepedAt[remaining]){
       player.beepedAt[remaining]=true; beep(880,120,0.12);
     }
@@ -1391,15 +1469,23 @@ function tick(){
 function pausePlayer(){
   if(!player.running) return;
   player.running=false;
-  player.remaining = Math.max(0, Math.ceil((player.endAt-Date.now())/1000));
+  if(player.sideBreak){
+    player.sideBreak.remaining = Math.max(0, Math.ceil((player.sideBreak.endAt-Date.now())/1000));
+  } else {
+    player.remaining = Math.max(0, Math.ceil((player.endAt-Date.now())/1000));
+  }
   clearTick();
   render();
 }
 function resumePlayer(){
   if(player.running) return;
-  if(player.remaining==null) return;
+  if(player.sideBreak){
+    player.sideBreak.endAt = Date.now() + player.sideBreak.remaining*1000;
+  } else {
+    if(player.remaining==null) return;
+    player.endAt = Date.now() + player.remaining*1000;
+  }
   player.running=true;
-  player.endAt = Date.now() + player.remaining*1000;
   clearTick();
   player.intervalId = setInterval(tick,200);
   render();
@@ -1574,7 +1660,13 @@ function renderPlayer(){
   let controlsHtml = '';
 
   if(player.phase==='work'){
-    if(st.exo.type==='time'){
+    if(player.sideBreak){
+      centerHtml = `<div class="big-emoji">🔁</div><div class="timer glow-rest">${formatTime(player.sideBreak.remaining)}</div><div class="side-switch-label">Changez de côté</div>`;
+      controlsHtml = `
+        <div class="controls">
+          <button class="btn primary" data-action="skipSideBreak">⏭ Reprendre</button>
+        </div>`;
+    } else if(st.exo.type==='time'){
       centerHtml = `<div class="big-emoji">${st.exo.icon}</div><div class="timer glow-work">${formatTime(player.remaining)}</div>`;
       controlsHtml = `
         <div class="controls">
@@ -1626,7 +1718,7 @@ function updatePlayerDom(){
   const root = document.getElementById('playerRoot');
   if(!root) return;
   const timerEl = root.querySelector('.timer');
-  if(timerEl) timerEl.textContent = formatTime(player.remaining);
+  if(timerEl) timerEl.textContent = formatTime(player.sideBreak ? player.sideBreak.remaining : player.remaining);
   const progressEl = root.querySelector('.progress-inner');
   if(progressEl) progressEl.style.width = Math.round((player.stepIdx/player.steps.length)*100)+'%';
 }
@@ -1738,6 +1830,11 @@ function attachEvents(){
       applyTheme();
       render();
     },
+    toggleAvoidLunges: ()=>{
+      settings.avoidLunges = !settings.avoidLunges;
+      saveSettings(settings);
+      render();
+    },
     checkUpdate: ()=>{
       updateState={status:'checking', info:null, error:null}; render();
       callAppUpdater('checkForUpdate').then(res=>{
@@ -1777,7 +1874,7 @@ function attachEvents(){
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
       if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
       if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
-      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,theme:'system',warmup:true,warmupMode:'short'}, data.settings); saveSettings(settings); applyTheme(); }
+      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,theme:'system',warmup:true,warmupMode:'short',avoidLunges:false}, data.settings); saveSettings(settings); applyTheme(); }
       if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
       if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
       sheet=null; view='home'; toast('Données importées ✓'); render();
@@ -1810,6 +1907,7 @@ function attachEvents(){
     resume: resumePlayer,
     resetPhase: resetPlayerPhase,
     skip: skipCurrent,
+    skipSideBreak: skipSideBreak,
     completeReps: completeRepsSet,
     restMinus: ()=>adjustRest(-15),
     restPlus: ()=>adjustRest(15),
