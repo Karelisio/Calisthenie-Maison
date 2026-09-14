@@ -854,12 +854,56 @@ function callNativePlugin(pluginName, method, options){
   return window.Capacitor.nativePromise(pluginName, method, options||{});
 }
 function callAppUpdater(method, options){ return callNativePlugin('AppUpdater', method, options); }
+function updateErrorText(err, fallback){
+  const msg = (err && (err.message || err.errorMessage)) || (typeof err === 'string' ? err : '');
+  return msg || fallback;
+}
+/* Suivi actif du téléchargement : on interroge Android une fois par seconde
+   plutôt que d'attendre une diffusion système qui peut ne jamais arriver —
+   c'est ce qui laissait l'écran figé sur "Téléchargement…" sans rien dire. */
+let downloadWatch = null;
+function stopDownloadWatch(){ if(downloadWatch){ clearInterval(downloadWatch); downloadWatch = null; } }
+function pollDownloadOnce(){
+  return callAppUpdater('getDownloadStatus').then(res=>{
+    const state = res && res.state;
+    if(!state || state === 'none'){ stopDownloadWatch(); return state; }
+    if(state === 'failed'){
+      stopDownloadWatch();
+      updateState = {status:'error', info:null, error:'Téléchargement échoué : ' + (res.reason || 'raison inconnue') + '.'};
+      render();
+      return state;
+    }
+    if(state === 'installing'){
+      stopDownloadWatch();
+      updateState = {status:'installing', info:updateState.info, error:null};
+      render();
+      return state;
+    }
+    const pct = (typeof res.percent === 'number') ? res.percent : null;
+    const label = state === 'paused' ? (res.reason || 'en pause')
+                : state === 'pending' ? 'en attente du démarrage…' : '';
+    if(updateState.status !== 'downloading' || updateState.percent !== pct || updateState.stateLabel !== label){
+      updateState = {status:'downloading', info:updateState.info, error:null, percent:pct, stateLabel:label};
+      render();
+    }
+    return state;
+  }).catch(err=>{
+    stopDownloadWatch();
+    updateState = {status:'error', info:null, error:updateErrorText(err, 'Suivi du téléchargement impossible.')};
+    render();
+  });
+}
+function watchDownload(){
+  stopDownloadWatch();
+  pollDownloadOnce();
+  downloadWatch = setInterval(pollDownloadOnce, 1000);
+}
 /* Page de secours si la mise à jour intégrée coince (appui long sur le
    bouton "Mise à jour") : permet d'installer l'APK à la main. */
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '8';
+const APP_BUILD = '9';
 
 /* Material You: tint the app's M3 tokens with the device's wallpaper-derived
    colors (Android 12+), falling back to the static palette otherwise. */
@@ -993,6 +1037,7 @@ function vibrate(pattern){
 /* Ferme la feuille courante et relance le chrono s'il avait été mis en pause
    uniquement pour lire les conseils. */
 function closeSheet(){
+  if(sheet && sheet.type === 'update') stopDownloadWatch();
   const resume = !!(sheet && sheet.resumeOnClose);
   sheet = null;
   if(resume) resumePlayer(); else render();
@@ -1435,7 +1480,12 @@ function renderSheet(){
       body = `<p>🎉 Une nouvelle version est disponible.</p>
         <button class="btn primary block" style="margin-top:12px;" data-action="installUpdate">⬇️ Télécharger et installer</button>`;
     } else if(updateState.status==='downloading'){
-      body = `<p>Téléchargement de la mise à jour…</p>`;
+      const pct = (typeof updateState.percent === 'number') ? updateState.percent : null;
+      const label = updateState.stateLabel || '';
+      body = `<p>Téléchargement de la mise à jour${pct!==null ? ' — ' + pct + ' %' : '…'}</p>
+        ${label ? `<p style="margin-top:4px;">${escapeHtml(label)}</p>` : ''}
+        <div class="progress-outer" style="margin-top:12px;"><div class="progress-inner" style="width:${pct!==null?pct:0}%"></div></div>
+        <button class="btn ghost block" style="margin-top:12px;" data-action="cancelUpdate">Annuler le téléchargement</button>`;
     } else if(updateState.status==='installing'){
       body = `<p>✅ Téléchargement terminé. L'écran d'installation Android devrait s'afficher dans un instant.</p>
         <p style="margin-top:8px;">S'il ne s'affiche pas, ferme cette fenêtre et réessaie, ou installe le fichier à la main (appui long sur le bouton "Mise à jour").</p>
@@ -1961,7 +2011,12 @@ function attachEvents(){
     openEquipment: ()=>{ sheet={type:'equipment'}; render(); },
     openExport: ()=>{ sheet={type:'export'}; render(); },
     openImport: ()=>{ sheet={type:'import'}; render(); },
-    openUpdate: ()=>{ sheet={type:'update'}; updateState={status:'idle', info:null, error:null}; render(); },
+    openUpdate: ()=>{
+      sheet={type:'update'}; updateState={status:'idle', info:null, error:null}; render();
+      // Si un téléchargement est resté en cours (écran fermé, appli relancée),
+      // on reprend son suivi au lieu de repartir de zéro.
+      pollDownloadOnce().then(state=>{ if(state && state !== 'none' && state !== 'failed' && state !== 'installing') watchDownload(); });
+    },
     cycleTheme: ()=>{
       const order = ['system','light','dark'];
       settings.theme = order[(order.indexOf(settings.theme)+1) % order.length];
@@ -1987,19 +2042,19 @@ function attachEvents(){
     },
     installUpdate: ()=>{
       if(!updateState.info){ updateState={status:'error', error:'Mise à jour indisponible.'}; render(); return; }
-      updateState={status:'downloading', info:updateState.info, error:null}; render();
-      callAppUpdater('downloadAndInstall', { url: updateState.info.downloadUrl, releaseId: updateState.info.releaseId })
-        .then(()=>{
-          // Le téléchargement est fini et l'écran d'installation Android a été
-          // lancé — sans ce passage, l'écran restait bloqué sur "Téléchargement…"
-          // pour toujours, même une fois le téléchargement terminé.
-          updateState={status:'installing', info:updateState.info, error:null};
-          render();
-        })
+      updateState={status:'downloading', info:updateState.info, error:null, percent:null}; render();
+      callAppUpdater('downloadAndInstall', { url: updateState.info.downloadUrl })
+        .then(()=>watchDownload())
         .catch(err=>{
-          updateState={status:'error', info:null, error:(err && err.message) || String(err) || 'Téléchargement impossible.'};
+          updateState={status:'error', info:null, error:updateErrorText(err, 'Téléchargement impossible.')};
           render();
         });
+    },
+    cancelUpdate: ()=>{
+      stopDownloadWatch();
+      callAppUpdater('cancelDownload').catch(()=>{});
+      updateState={status:'idle', info:null, error:null};
+      render();
     },
     copyExport: ()=>{
       const ta = document.getElementById('exportArea');
