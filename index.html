@@ -683,7 +683,7 @@ const STRETCH_LIB = [
 /* Combien d'items on retient selon le mode choisi (Court ≈ 3 min, Long ≈ 7 min). */
 const FLEX_PLAN = {
   short: { raise:1, mobilise:4, potentiate:0, stretches:4 },
-  long:  { raise:2, mobilise:8, potentiate:2, stretches:8 },
+  long:  { raise:2, mobilise:7, potentiate:2, stretches:8 },
 };
 function matchesMuscle(entry, muscle){
   return (entry.muscles||[]).some(m=>muscle.startsWith(m) || m.startsWith(muscle));
@@ -702,6 +702,9 @@ function pickFlexItems(pool, muscles, count){
   const rest = available.filter(e=>!matched.includes(e));
   return [...shuffled(matched), ...shuffled(rest)].slice(0, count);
 }
+/* Temps de transition entre deux mouvements : de quoi changer de position,
+   se replacer au sol ou attraper la barre sans courir après le chrono. */
+const FLEX_REST = { warmup: 12, stretch: 15 };
 function toFlexExo(entry, meta, rest){
   return {libId:null, srcId:entry.id, meta, name:entry.name, icon:entry.icon, type:'time', sets:1, val:entry.val, rest};
 }
@@ -714,12 +717,12 @@ function buildWarmupExos(session){
     ...pickFlexItems([...byCat('mobilise'), ...byCat('activate')], muscles, plan.mobilise),
     ...pickFlexItems(byCat('potentiate'), muscles, plan.potentiate),
   ];
-  return picked.map(w=>toFlexExo(w, 'warmup', 5));
+  return picked.map(w=>toFlexExo(w, 'warmup', FLEX_REST.warmup));
 }
 function buildStretchExos(session){
   const plan = FLEX_PLAN[settings.warmupMode==='long' ? 'long' : 'short'];
   const muscles = getSessionMuscles(session);
-  return pickFlexItems(STRETCH_LIB, muscles, plan.stretches).map(s=>toFlexExo(s, 'stretch', 8));
+  return pickFlexItems(STRETCH_LIB, muscles, plan.stretches).map(s=>toFlexExo(s, 'stretch', FLEX_REST.stretch));
 }
 
 const EQUIPMENT_LABELS = {
@@ -903,6 +906,13 @@ function vibrate(pattern){
 }
 
 /* ---------------- RENDER ROOT ---------------- */
+/* Ferme la feuille courante et relance le chrono s'il avait été mis en pause
+   uniquement pour lire les conseils. */
+function closeSheet(){
+  const resume = !!(sheet && sheet.resumeOnClose);
+  sheet = null;
+  if(resume) resumePlayer(); else render();
+}
 function render(){
   const app = document.getElementById('app');
   let html = '';
@@ -1772,7 +1782,7 @@ function attachEvents(){
       if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
       sheet=null; view='home'; toast('Données importées ✓'); render();
     },
-    closeSheet: ()=>{ sheet=null; render(); },
+    closeSheet: ()=>closeSheet(),
     newSession: ()=>{ builderDraft = newDraft(); view='builder'; render(); },
     cancelBuilder: ()=>{ builderDraft=null; view='home'; render(); },
     saveSession: ()=>{
@@ -1819,7 +1829,10 @@ function attachEvents(){
 
   app.querySelectorAll('[data-tips]').forEach(b=>b.onclick = (ev)=>{
     ev.stopPropagation();
-    sheet = {type:'tips', exoId:b.getAttribute('data-tips')};
+    // Pendant une séance, on ne laisse pas le chrono tourner pendant la lecture.
+    const wasRunning = view==='player' && player.running;
+    if(wasRunning) pausePlayer();
+    sheet = {type:'tips', exoId:b.getAttribute('data-tips'), resumeOnClose:wasRunning};
     render();
   });
 
@@ -1869,7 +1882,7 @@ function attachEvents(){
   });
 
   const overlay = app.querySelector('[data-close-sheet]');
-  if(overlay) overlay.onclick = (e)=>{ if(e.target===overlay){ sheet=null; render(); } };
+  if(overlay) overlay.onclick = (e)=>{ if(e.target===overlay) closeSheet(); };
 }
 
 applyTheme();
