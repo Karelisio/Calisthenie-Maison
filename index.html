@@ -442,6 +442,47 @@ const GENERIC_TIPS = [
   "Arrête l'exercice en cas de douleur articulaire (pas de simple fatigue musculaire) et adapte l'amplitude ou l'intensité."
 ];
 
+/* Générique, toujours la même séquence : mobilise le corps entier avant l'effort. */
+const WARMUP_LIB = [
+  {name:'Cercles de bras', icon:'🔄', val:20},
+  {name:'Cercles de hanches', icon:'🌀', val:20},
+  {name:'Montées de genoux', icon:'🏃', val:25},
+  {name:'Jumping Jacks', icon:'✖️', val:25},
+];
+
+/* Choisi automatiquement selon les muscles réellement travaillés dans la séance. */
+const STRETCH_LIB = [
+  {id:'s_chest', name:'Étirement pectoraux', icon:'🤸', val:25, muscles:['Pectoraux']},
+  {id:'s_shoulders', name:'Étirement épaules', icon:'🙆', val:25, muscles:['Épaules']},
+  {id:'s_triceps', name:'Étirement triceps', icon:'💪', val:25, muscles:['Triceps']},
+  {id:'s_biceps', name:'Étirement biceps', icon:'🙌', val:25, muscles:['Biceps']},
+  {id:'s_forearms', name:'Étirement avant-bras', icon:'✋', val:20, muscles:['Avant-bras']},
+  {id:'s_back', name:'Étirement dos (chat étiré)', icon:'🧎', val:25, muscles:['Dos','Trapèzes']},
+  {id:'s_lower_back', name:'Étirement lombaires (genoux poitrine)', icon:'🤰', val:25, muscles:['Lombaires']},
+  {id:'s_abs', name:'Étirement abdominaux (cobra)', icon:'🐍', val:25, muscles:['Abdominaux']},
+  {id:'s_obliques', name:'Étirement obliques', icon:'↔️', val:20, muscles:['Obliques']},
+  {id:'s_quads', name:'Étirement quadriceps', icon:'🦵', val:25, muscles:['Quadriceps']},
+  {id:'s_hamstrings', name:'Étirement ischio-jambiers', icon:'🤾', val:25, muscles:['Ischio-jambiers']},
+  {id:'s_glutes', name:'Étirement fessiers', icon:'🍑', val:25, muscles:['Fessiers']},
+  {id:'s_calves', name:'Étirement mollets', icon:'🦶', val:20, muscles:['Mollets']},
+  {id:'s_hips', name:'Étirement fléchisseurs de hanche', icon:'🧘', val:25, muscles:['Fléchisseurs de hanche','Hanches']},
+];
+function findStretchForMuscle(muscle){
+  return STRETCH_LIB.find(s=>s.muscles.some(m=>muscle.startsWith(m) || m.startsWith(muscle)));
+}
+function buildWarmupExos(){
+  return WARMUP_LIB.map(w=>({libId:null, meta:'warmup', name:w.name, icon:w.icon, type:'time', sets:1, val:w.val, rest:5}));
+}
+function buildStretchExos(session){
+  const muscles = getSessionMuscles(session);
+  const picked = []; const usedIds = new Set();
+  muscles.forEach(m=>{
+    const s = findStretchForMuscle(m);
+    if(s && !usedIds.has(s.id)){ usedIds.add(s.id); picked.push(s); }
+  });
+  return picked.map(s=>({libId:null, meta:'stretch', name:s.name, icon:s.icon, type:'time', sets:1, val:s.val, rest:8}));
+}
+
 const EQUIPMENT_LABELS = {
   pullupBar: 'Barre de traction',
   dipBar: 'Barre de dips',
@@ -489,7 +530,7 @@ function loadSessions(){
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
 function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
 function saveCustomExos(a){ try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
-function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, theme:'system'}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, theme:'system'}; } }
+function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, theme:'system', warmup:true}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, theme:'system', warmup:true}; } }
 function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
 function loadEquipment(){ try{ return Object.assign({pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}, JSON.parse(localStorage.getItem(LS_EQUIPMENT)||'{}')); }catch(e){ return {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}; } }
 function saveEquipment(eq){ try{ localStorage.setItem(LS_EQUIPMENT, JSON.stringify(eq)); }catch(e){} }
@@ -684,6 +725,7 @@ function renderHome(){
     <div class="row wrap">
       <button class="btn sm ${settings.sound?'accent':'ghost'}" data-toggle="sound">🔊 Son ${settings.sound?'ON':'OFF'}</button>
       <button class="btn sm ${settings.vibrate?'accent':'ghost'}" data-toggle="vibrate">📳 Vibration ${settings.vibrate?'ON':'OFF'}</button>
+      <button class="btn sm ${settings.warmup?'accent':'ghost'}" data-toggle="warmup">🔥 Échauff. + étir. ${settings.warmup?'ON':'OFF'}</button>
       <button class="btn sm ${settings.theme!=='system'?'accent':'ghost'}" style="min-width:112px;" data-action="cycleTheme">${THEME_LABELS[settings.theme]}</button>
       <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
       <button class="btn sm ghost" data-action="openExport">📤 Export</button>
@@ -990,6 +1032,11 @@ function flattenSteps(session){
 
 function startSession(idx){
   const session = JSON.parse(JSON.stringify(sessions[idx]));
+  if(settings.warmup){
+    const warmupExos = buildWarmupExos();
+    const stretchExos = buildStretchExos(sessions[idx]);
+    session.exos = [...warmupExos, ...session.exos, ...stretchExos];
+  }
   const steps = flattenSteps(session);
   if(steps.length===0){ toast('Cette séance est vide.'); return; }
   player = {
@@ -1134,7 +1181,7 @@ function saveReview(){
     id: 'log_'+Date.now(),
     sessionName: s.name,
     dateISO: new Date().toISOString(),
-    exercises: s.exos.map((e,i)=>{
+    exercises: s.exos.map((e,i)=>({e,i})).filter(({e})=>!e.meta).map(({e,i})=>{
       const ans = player.review[i];
       return {
         name:e.name, icon:e.icon, type:e.type,
@@ -1191,7 +1238,7 @@ function renderPlayer(){
       <div class="big-emoji" style="text-align:center;">🎉</div>
       <h1 style="text-align:center;">Séance terminée !</h1>
       <p style="text-align:center;margin-bottom:20px;">${escapeHtml(s.name)} — comment ça s'est passé ?</p>
-      ${s.exos.map((e,i)=>renderReviewExo(e,i)).join('')}
+      ${s.exos.map((e,i)=>e.meta ? '' : renderReviewExo(e,i)).join('')}
       <div class="card tight" style="margin-bottom:10px;">
         <b style="font-size:14px;">📝 Ton ressenti</b>
         <div class="row wrap" style="margin-top:10px;gap:8px;">
@@ -1269,7 +1316,7 @@ function renderPlayer(){
     <span class="phase-tag ${player.phase}">${player.phase==='work'?'EN COURS':'REPOS'}</span>
     <div class="exo-name">${escapeHtml(st.exo.name)}</div>
     <div class="set-count">Série ${st.setIndex+1} / ${st.exo.sets}</div>
-    <button class="tips-btn" data-tips="${st.exo.libId}">💡 Conseils &amp; sécurité</button>
+    ${st.exo.libId ? `<button class="tips-btn" data-tips="${st.exo.libId}">💡 Conseils &amp; sécurité</button>` : ''}
     ${centerHtml}
     ${controlsHtml}
     ${nextLabel? `<div class="next-preview">${nextLabel}</div>` : ''}
@@ -1398,7 +1445,7 @@ function attachEvents(){
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
       if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
       if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
-      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,theme:'system'}, data.settings); saveSettings(settings); applyTheme(); }
+      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,theme:'system',warmup:true}, data.settings); saveSettings(settings); applyTheme(); }
       if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
       if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
       sheet=null; view='home'; toast('Données importées ✓'); render();
