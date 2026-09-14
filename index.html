@@ -449,6 +449,7 @@ const EQUIPMENT_LABELS = {
   bench: 'Banc',
   bands: 'Élastiques'
 };
+const FEELING_LABELS = { easy:'😌 Trop facile', good:'👌 Parfait', hard:'🥵 Trop dur' };
 const EQUIPMENT_NOTES = {
   pullupBar: 'Débloque les tractions à la barre.',
   dipBar: 'Débloque les dips sur barre parallèles.',
@@ -832,6 +833,10 @@ function renderTracking(){
         <button class="icon-btn" data-del-log="${realIdx}" title="Supprimer">🗑️</button>
       </div>
       <div style="margin-top:8px;">${exoRows}</div>
+      ${log.feeling || log.note ? `<div style="margin-top:10px;">
+        ${log.feeling && FEELING_LABELS[log.feeling] ? `<span class="pill">${FEELING_LABELS[log.feeling]}</span>` : ''}
+        ${log.note ? `<p style="margin-top:8px;color:var(--text);font-size:13px;white-space:pre-wrap;">📝 ${escapeHtml(log.note)}</p>` : ''}
+      </div>` : ''}
     </div>`;
   }).join('');
   return rows + `<button class="btn ghost block" data-action="clearLogs" style="margin-top:6px;">🗑️ Effacer tout l'historique</button>`;
@@ -1115,6 +1120,8 @@ function goToNextStep(){
 function finishSession(){
   clearTick();
   player.phase='review';
+  player.feeling = null;
+  player.note = '';
   player.review = player.session.exos.map(e=>({completed:true, actualSets:e.sets, actualVal:e.val}));
   beep(660,150,0.15); setTimeout(()=>beep(880,150,0.15),160); setTimeout(()=>beep(1100,220,0.18),320);
   vibrate([100,50,100,50,150]);
@@ -1136,7 +1143,9 @@ function saveReview(){
         actualSets: ans.completed ? e.sets : Math.max(0, parseInt(ans.actualSets)||0),
         actualVal: ans.completed ? e.val : Math.max(0, parseInt(ans.actualVal)||0)
       };
-    })
+    }),
+    feeling: player.feeling || null,
+    note: (player.note || '').trim()
   };
   logs.push(entry);
   saveLogs(logs);
@@ -1183,6 +1192,18 @@ function renderPlayer(){
       <h1 style="text-align:center;">Séance terminée !</h1>
       <p style="text-align:center;margin-bottom:20px;">${escapeHtml(s.name)} — comment ça s'est passé ?</p>
       ${s.exos.map((e,i)=>renderReviewExo(e,i)).join('')}
+      <div class="card tight" style="margin-bottom:10px;">
+        <b style="font-size:14px;">📝 Ton ressenti</b>
+        <div class="row wrap" style="margin-top:10px;gap:8px;">
+          ${Object.keys(FEELING_LABELS).map(k=>
+            `<button class="btn sm ${player.feeling===k ? (k==='hard'?'danger':'accent') : 'ghost'}" data-feeling="${k}">${FEELING_LABELS[k]}</button>`
+          ).join('')}
+        </div>
+        <label class="field" style="margin:12px 0 0;">
+          <span>Note (optionnel)</span>
+          <textarea id="reviewNote" rows="3" placeholder="Ex : bras fatigués sur les dernières séries, à refaire avec plus de repos…" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;">${escapeHtml(player.note||'')}</textarea>
+        </label>
+      </div>
       <div class="row" style="margin-top:6px;gap:10px;">
         <button class="btn ghost block" data-action="skipReview">Ignorer</button>
         <button class="btn primary block" data-action="saveReview">💾 Enregistrer dans mon suivi</button>
@@ -1451,6 +1472,13 @@ function attachEvents(){
     if(field==='sets') player.review[i].actualSets = inp.value;
     else player.review[i].actualVal = inp.value;
   });
+  app.querySelectorAll('[data-feeling]').forEach(b=>b.onclick = ()=>{
+    const v = b.getAttribute('data-feeling');
+    player.feeling = player.feeling===v ? null : v;
+    render();
+  });
+  const noteEl = document.getElementById('reviewNote');
+  if(noteEl) noteEl.oninput = ()=>{ player.note = noteEl.value; };
   app.querySelectorAll('[data-del-log]').forEach(b=>b.onclick = ()=>{
     const i = parseInt(b.getAttribute('data-del-log'));
     if(confirm('Supprimer cette séance de ton suivi ?')){
