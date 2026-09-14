@@ -142,6 +142,12 @@
   .card.tight{padding:12px 14px;}
   .card:active{filter:brightness(1.04);}
 
+  /* Sans ça, un appui long sur un bouton déclenche la sélection de texte /
+     le menu contextuel d'Android, qui interrompt le geste. */
+  button, .lib-item{
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent;
+  }
   button{font-family:inherit;touch-action:manipulation;}
   /* Les tailles tactiles suivent le minimum recommandé par Android (48dp) :
      en dessous, un appui sur le bord du bouton rate régulièrement sa cible. */
@@ -853,7 +859,7 @@ function callAppUpdater(method, options){ return callNativePlugin('AppUpdater', 
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '7';
+const APP_BUILD = '8';
 
 /* Material You: tint the app's M3 tokens with the device's wallpaper-derived
    colors (Android 12+), falling back to the static palette otherwise. */
@@ -1847,6 +1853,36 @@ function formatTime(sec){
 function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ---------------- EVENTS ---------------- */
+/* Appui long fiable au doigt. Trois pièges évités :
+   - le doigt bouge toujours un peu pendant un appui maintenu, donc on tolère
+     un petit déplacement au lieu d'annuler au moindre pixel (et un appui long
+     raté ne doit pas déclencher l'action courte par surprise) ;
+   - on capture le pointeur pour ne pas perdre le relâchement si le doigt
+     sort du bouton ;
+   - une courte vibration confirme le déclenchement : plus besoin de deviner
+     combien de temps tenir. */
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_TOLERANCE = 14;
+function attachLongPress(el, onShort, onLong){
+  let timer = null, fired = false, cancelled = false, startX = 0, startY = 0;
+  const clearTimer = ()=>{ if(timer){ clearTimeout(timer); timer = null; } };
+  el.addEventListener('pointerdown', ev=>{
+    fired = false; cancelled = false;
+    startX = ev.clientX; startY = ev.clientY;
+    try{ el.setPointerCapture(ev.pointerId); }catch(e){}
+    clearTimer();
+    timer = setTimeout(()=>{ timer = null; fired = true; vibrate(40); onLong(); }, LONG_PRESS_MS);
+  });
+  el.addEventListener('pointermove', ev=>{
+    if(!timer) return;
+    if(Math.abs(ev.clientX-startX) > LONG_PRESS_TOLERANCE || Math.abs(ev.clientY-startY) > LONG_PRESS_TOLERANCE) clearTimer();
+  });
+  el.addEventListener('pointerup', ()=>{
+    clearTimer();
+    if(!fired && !cancelled) onShort();
+  });
+  el.addEventListener('pointercancel', ()=>{ clearTimer(); cancelled = true; });
+}
 function attachEvents(){
   const app = document.getElementById('app');
 
@@ -1875,20 +1911,10 @@ function attachEvents(){
     render();
   });
 
-  app.querySelectorAll('[data-warmup-btn]').forEach(b=>{
-    let pressTimer=null, longPressed=false;
-    const cancelTimer=()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } };
-    b.addEventListener('pointerdown', ()=>{
-      longPressed=false;
-      pressTimer=setTimeout(()=>{ longPressed=true; sheet={type:'warmupMode'}; render(); }, 550);
-    });
-    b.addEventListener('pointerup', ()=>{
-      cancelTimer();
-      if(!longPressed){ settings.warmup=!settings.warmup; saveSettings(settings); render(); }
-    });
-    b.addEventListener('pointerleave', cancelTimer);
-    b.addEventListener('pointercancel', cancelTimer);
-  });
+  app.querySelectorAll('[data-warmup-btn]').forEach(b=>attachLongPress(b,
+    ()=>{ settings.warmup=!settings.warmup; saveSettings(settings); render(); },
+    ()=>{ sheet={type:'warmupMode'}; render(); }
+  ));
   app.querySelectorAll('[data-set-warmup-mode]').forEach(b=>b.onclick = ()=>{
     settings.warmupMode = b.getAttribute('data-set-warmup-mode');
     saveSettings(settings);
@@ -2052,20 +2078,10 @@ function attachEvents(){
 
   // Appui court sur "Mise à jour" : écran habituel. Appui long : page GitHub
   // de la release, pour installer à la main si la mise à jour intégrée coince.
-  app.querySelectorAll('[data-update-btn]').forEach(b=>{
-    let pressTimer=null, longPressed=false;
-    const cancelTimer=()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } };
-    b.addEventListener('pointerdown', ()=>{
-      longPressed=false;
-      pressTimer=setTimeout(()=>{ longPressed=true; window.open(UPDATE_RELEASE_PAGE_URL, '_blank'); }, 550);
-    });
-    b.addEventListener('pointerup', ()=>{
-      cancelTimer();
-      if(!longPressed) actionMap.openUpdate();
-    });
-    b.addEventListener('pointerleave', cancelTimer);
-    b.addEventListener('pointercancel', cancelTimer);
-  });
+  app.querySelectorAll('[data-update-btn]').forEach(b=>attachLongPress(b,
+    ()=>actionMap.openUpdate(),
+    ()=>window.open(UPDATE_RELEASE_PAGE_URL, '_blank')
+  ));
 
   app.querySelectorAll('[data-tips]').forEach(b=>b.onclick = (ev)=>{
     ev.stopPropagation();
