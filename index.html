@@ -124,7 +124,7 @@
   nav.tabs{display:flex;gap:6px;margin-top:14px;}
   nav.tabs button{
     flex:1;background:var(--card);border:1px solid var(--border);color:var(--muted);
-    padding:10px 4px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+    padding:10px 4px;min-height:46px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
     transition:transform .15s ease,filter .15s ease;
   }
   nav.tabs button.active{
@@ -143,9 +143,13 @@
   .card:active{filter:brightness(1.04);}
 
   button{font-family:inherit;touch-action:manipulation;}
+  /* Les tailles tactiles suivent le minimum recommandé par Android (48dp) :
+     en dessous, un appui sur le bord du bouton rate régulièrement sa cible. */
   .btn{
     position:relative;overflow:hidden;isolation:isolate;
     border:none;border-radius:var(--radius);padding:12px 18px;font-size:14px;font-weight:600;
+    min-height:48px;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
     cursor:pointer;color:var(--text);background:var(--card2);
     box-shadow:0 1px 0 rgba(255,255,255,.06) inset;
     transition:transform .15s ease, filter .15s ease;
@@ -156,7 +160,11 @@
     opacity:0;transition:opacity .15s ease;pointer-events:none;
   }
   .btn.primary::before, .btn.accent::before{opacity:1;}
-  .btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.06);}
+  /* Effets de survol réservés à la souris : au doigt, le survol reste "collé"
+     après un appui et laisse le bouton dans un état visuel faussement actif. */
+  @media (hover:hover){
+    .btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.06);}
+  }
   .btn:active:not(:disabled){transform:translateY(0);filter:brightness(.95);}
   .btn.primary{
     background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, white));
@@ -171,16 +179,19 @@
   .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
   .btn.danger{background:color-mix(in srgb, var(--danger) 16%, transparent);color:var(--danger);border:1px solid color-mix(in srgb, var(--danger) 35%, transparent);}
   .btn.block{width:100%;}
-  .btn.sm{padding:8px 12px;font-size:12px;border-radius:10px;}
+  .btn.sm{padding:8px 14px;min-height:42px;font-size:12px;border-radius:12px;}
   .btn:disabled{opacity:.4;cursor:not-allowed;}
   .icon-btn{
-    width:40px;height:40px;border-radius:12px;
+    width:44px;height:44px;border-radius:12px;
     background:linear-gradient(160deg, var(--card2), var(--card));
     color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;
     border:none;box-shadow:0 1px 0 rgba(255,255,255,.07) inset;
     transition:transform .15s ease, filter .15s ease;
   }
-  .icon-btn:hover{transform:translateY(-1px);filter:brightness(1.15);}
+  @media (hover:hover){
+    .icon-btn:hover{transform:translateY(-1px);filter:brightness(1.15);}
+  }
+  .icon-btn:active{filter:brightness(.92);}
 
   .pill{display:inline-flex;align-items:center;gap:6px;background:var(--card2);
     padding:5px 12px;border-radius:var(--radius-full);font-size:12px;color:var(--muted);}
@@ -202,9 +213,10 @@
   .exo-item .meta{flex:1;min-width:0;}
   .exo-item .meta b{display:block;font-size:14px;font-weight:500;}
   .exo-item .meta small{color:var(--muted);}
-  .stepper{display:flex;align-items:center;gap:8px;}
-  .stepper button{width:28px;height:28px;border-radius:50%;background:var(--card2);border:none;color:var(--text);cursor:pointer;font-size:14px;}
-  .stepper span{min-width:26px;text-align:center;font-size:13px;font-weight:700;}
+  .stepper{display:flex;align-items:center;gap:10px;}
+  .stepper button{width:42px;height:42px;border-radius:50%;background:var(--card2);border:none;color:var(--text);cursor:pointer;font-size:18px;line-height:1;}
+  .stepper button:active{filter:brightness(.9);}
+  .stepper span{min-width:30px;text-align:center;font-size:14px;font-weight:700;}
   .stepper-col{display:flex;flex-direction:column;align-items:flex-start;gap:4px;}
   .stepper-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
 
@@ -254,7 +266,7 @@
   .tips-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;}
   .tips-list li{padding-left:24px;position:relative;font-size:14px;line-height:1.55;color:var(--text);}
   .tips-list li:before{content:'✓';position:absolute;left:0;top:0;color:var(--accent2);font-weight:700;}
-  .tips-btn{display:inline-flex;align-items:center;gap:6px;background:var(--accent2-container);color:var(--on-accent2-container);border:none;padding:8px 14px;border-radius:var(--radius-full);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:16px;}
+  .tips-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--accent2-container);color:var(--on-accent2-container);border:none;padding:10px 16px;min-height:44px;border-radius:var(--radius-full);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:16px;}
 </style>
 </head>
 <body>
@@ -839,6 +851,9 @@ function callAppUpdater(method, options){ return callNativePlugin('AppUpdater', 
 /* Page de secours si la mise à jour intégrée coince (appui long sur le
    bouton "Mise à jour") : permet d'installer l'APK à la main. */
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
+/* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
+   version est réellement installée (à incrémenter à chaque publication). */
+const APP_BUILD = '7';
 
 /* Material You: tint the app's M3 tokens with the device's wallpaper-derived
    colors (Android 12+), falling back to the static palette otherwise. */
@@ -936,24 +951,36 @@ function beep(freq, dur, vol){
     o.stop(actx.currentTime + dur/1000 + 0.02);
   }catch(e){}
 }
+function webVibrate(pattern){
+  try{
+    if(!navigator.vibrate) return Promise.reject(new Error('non supportée par le système'));
+    return navigator.vibrate(pattern) ? Promise.resolve() : Promise.reject(new Error('refusée par le système'));
+  }catch(e){ return Promise.reject(e); }
+}
+/* Joue un motif [vibre, pause, vibre, ...] et renvoie une promesse qui échoue
+   si rien n'a pu être déclenché, pour pouvoir le dire à l'utilisateur plutôt
+   que d'échouer en silence.
+   Un chrono (setInterval) n'est pas un "geste utilisateur" : la Vibration API
+   web est alors ignorée sans erreur (règle du navigateur, valable aussi dans
+   la WebView Android), or une bonne partie des vibrations de l'app partent du
+   minuteur. D'où le module natif Haptics, avec repli sur l'API web s'il manque
+   (ancienne version installée). */
+function playVibration(pattern){
+  const seq = Array.isArray(pattern) ? pattern : [pattern];
+  if(!isNativeApp()) return webVibrate(pattern);
+  let at = 0, first = null;
+  seq.forEach((ms, i)=>{
+    if(i % 2 === 0){
+      if(first === null){ first = callNativePlugin('Haptics', 'vibrate', {duration: ms}); }
+      else { const delay = at; setTimeout(()=>{ callNativePlugin('Haptics', 'vibrate', {duration: ms}).catch(()=>{}); }, delay); }
+    }
+    at += ms;
+  });
+  return (first || Promise.resolve()).catch(err=> webVibrate(pattern).catch(()=>{ throw err; }));
+}
 function vibrate(pattern){
   if(!settings.vibrate) return;
-  if(isNativeApp()){
-    /* Un chrono (setInterval) n'est pas un "geste utilisateur" : la
-       Vibration API web est silencieusement ignorée dans ce cas (règle du
-       navigateur, valable aussi dans la WebView Android), alors qu'une
-       bonne partie des vibrations de l'app partent justement du minuteur.
-       On passe donc par le module natif Haptics, en rejouant le motif
-       [vibre, pause, vibre, ...] via une suite d'appels simples. */
-    const seq = Array.isArray(pattern) ? pattern : [pattern];
-    let at = 0;
-    seq.forEach((ms, i)=>{
-      if(i % 2 === 0){ setTimeout(()=>{ callNativePlugin('Haptics', 'vibrate', {duration: ms}).catch(()=>{}); }, at); }
-      at += ms;
-    });
-    return;
-  }
-  try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
+  playVibration(pattern).catch(()=>{});
 }
 
 /* ---------------- RENDER ROOT ---------------- */
@@ -1063,7 +1090,7 @@ function renderHome(){
     </div>`;
   }).join('') + `
   <div class="card tight" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-    <span style="font-size:13px;color:var(--muted);">Réglages</span>
+    <span style="font-size:13px;color:var(--muted);">Réglages <span style="opacity:.65;">· version ${APP_BUILD}</span></span>
     <div class="row wrap">
       <button class="btn sm ${settings.sound?'accent':'ghost'}" data-toggle="sound">🔊 Son ${settings.sound?'ON':'OFF'}</button>
       <button class="btn sm ${settings.vibrate?'accent':'ghost'}" data-toggle="vibrate">📳 Vibration ${settings.vibrate?'ON':'OFF'}</button>
@@ -1838,6 +1865,13 @@ function attachEvents(){
     const k = b.getAttribute('data-toggle');
     settings[k] = !settings[k];
     saveSettings(settings);
+    // Activer la vibration la teste tout de suite : on la sent si elle marche,
+    // et sinon le message dit précisément ce qui bloque.
+    if(k === 'vibrate' && settings.vibrate){
+      playVibration([120,60,120])
+        .then(()=>toast('Vibration OK ✓'))
+        .catch(err=>toast('Vibration indisponible : ' + ((err && err.message) || err)));
+    }
     render();
   });
 
