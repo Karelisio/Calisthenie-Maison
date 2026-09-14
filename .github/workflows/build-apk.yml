@@ -71,6 +71,10 @@ jobs:
           path: ${{ steps.vars.outputs.apk_name }}
 
       - name: Publish APK to GitHub Release
+        # Seule la branche material-design est maintenue : une branche de
+        # travail (claude/**) ne doit pas publier/écraser une release
+        # publique sous l'étiquette de l'ancienne version abandonnée.
+        if: github.ref_name == 'material-design'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.tag }}

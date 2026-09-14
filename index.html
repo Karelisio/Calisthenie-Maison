@@ -790,6 +790,25 @@ function gatherAllData(){
   return { app:'calisthenie-maison', version:1, exportedAt:new Date().toISOString(), sessions, customExos, settings, equipment, logs };
 }
 
+/* Validation légère d'un import avant de l'accepter : évite qu'un texte
+   collé mal formé (mauvaise copie, fichier abîmé) ne mette l'app dans un
+   état cassé après coup. */
+function isPlainObject(x){ return !!x && typeof x==='object' && !Array.isArray(x); }
+function isValidSessionShape(s){
+  return isPlainObject(s) && typeof s.name==='string' && Array.isArray(s.exos) &&
+    s.exos.every(e => isPlainObject(e) && typeof e.name==='string' && (e.type==='reps'||e.type==='time') &&
+      typeof e.sets==='number' && typeof e.val==='number' && typeof e.rest==='number');
+}
+function isValidImportData(data){
+  if(!isPlainObject(data)) return false;
+  if(data.sessions!==undefined && (!Array.isArray(data.sessions) || !data.sessions.every(isValidSessionShape))) return false;
+  if(data.customExos!==undefined && (!Array.isArray(data.customExos) || !data.customExos.every(e=>isPlainObject(e) && typeof e.id==='string' && typeof e.name==='string'))) return false;
+  if(data.settings!==undefined && !isPlainObject(data.settings)) return false;
+  if(data.equipment!==undefined && !isPlainObject(data.equipment)) return false;
+  if(data.logs!==undefined && !Array.isArray(data.logs)) return false;
+  return true;
+}
+
 /* ---------------- STATE ---------------- */
 let sessions = loadSessions();
 let customExos = loadCustomExos();
@@ -922,6 +941,13 @@ function closeSheet(){
   if(resume) resumePlayer(); else render();
 }
 function render(){
+  try{
+    renderInner();
+  }catch(err){
+    renderCrash(err);
+  }
+}
+function renderInner(){
   const app = document.getElementById('app');
   let html = '';
   if(view === 'player' && player){
@@ -936,6 +962,26 @@ function render(){
   }
   app.innerHTML = html + renderSheet();
   attachEvents();
+}
+/* Filet de sécurité : si des données corrompues (import invalide, stockage
+   altéré à la main) font planter le rendu normal, on évite un écran blanc
+   bloqué en proposant de réinitialiser les données de l'app. */
+function renderCrash(err){
+  console.error(err);
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="empty" style="padding-top:60px;">
+    <div class="big">⚠️</div>
+    <h3>Un problème est survenu</h3>
+    <p>L'application n'a pas pu afficher tes données correctement (données corrompues ou import invalide).</p>
+    <button class="btn danger block" id="resetAppDataBtn" style="margin-top:16px;">Réinitialiser les données de l'application</button>
+  </div>`;
+  const btn = document.getElementById('resetAppDataBtn');
+  if(btn) btn.onclick = ()=>{
+    if(confirm('Cela supprimera toutes tes séances, exercices personnalisés, réglages et suivi de cette appli. Continuer ?')){
+      [LS_SESSIONS, LS_CUSTOM, LS_SETTINGS, LS_EQUIPMENT, LS_LOGS].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+      location.reload();
+    }
+  };
 }
 
 function renderHeader(){
@@ -1871,6 +1917,7 @@ function attachEvents(){
       let data;
       try{ data = JSON.parse(raw); }catch(e){ toast('Texte invalide : vérifie que tu as bien tout copié.'); return; }
       if(!data || typeof data!=='object'){ toast('Format invalide.'); return; }
+      if(!isValidImportData(data)){ toast('Le contenu importé est invalide ou incomplet : vérifie que tu as bien tout copié.'); return; }
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
       if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
       if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
