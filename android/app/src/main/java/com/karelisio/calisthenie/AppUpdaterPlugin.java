@@ -122,9 +122,6 @@ public class AppUpdaterPlugin extends Plugin {
         pendingInstallCall = call;
         call.setKeepAlive(true);
 
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString(PREF_RELEASE_ID, releaseId).apply();
-
         BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context ctx, Intent intent) {
@@ -141,6 +138,15 @@ public class AppUpdaterPlugin extends Plugin {
                     installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     ctx.startActivity(installIntent);
+
+                    // On ne marque la mise à jour comme "installée" qu'une fois le
+                    // téléchargement terminé et l'écran d'installation Android
+                    // réellement lancé — pas dès le clic sur "Télécharger" comme
+                    // avant. Sinon un téléchargement interrompu (app quittée en
+                    // cours de route, connexion coupée...) faisait croire à tort
+                    // que l'app était déjà à jour alors que rien n'avait été installé.
+                    ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                        .edit().putString(PREF_RELEASE_ID, releaseId).apply();
 
                     if (pendingInstallCall != null) {
                         JSObject ret = new JSObject();
