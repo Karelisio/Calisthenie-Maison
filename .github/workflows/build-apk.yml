@@ -23,7 +23,7 @@ jobs:
             echo "apk_name=calisthenie-maison-material-debug.apk" >> "$GITHUB_OUTPUT"
             echo "artifact_name=calisthenie-maison-material-debug-apk" >> "$GITHUB_OUTPUT"
             echo "release_title=Dernier APK Material (build automatique)" >> "$GITHUB_OUTPUT"
-            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            echo "make_latest=true" >> "$GITHUB_OUTPUT"
           else
             echo "tag=apk-latest" >> "$GITHUB_OUTPUT"
             echo "apk_name=calisthenie-maison-debug.apk" >> "$GITHUB_OUTPUT"
