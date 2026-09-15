@@ -956,7 +956,7 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '10';
+const APP_BUILD = '11';
 
 /* Material You: tint the app's M3 tokens with the device's wallpaper-derived
    colors (Android 12+), falling back to the static palette otherwise. */
@@ -981,6 +981,39 @@ function clearDynamicColors(){
    '--accent2','--on-accent2','--accent2-container','--on-accent2-container',
    '--bg','--bg2','--card','--card2','--border','--text','--muted'].forEach(v=>root.removeProperty(v));
 }
+
+/* ---------------- ÉCRAN ALLUMÉ ----------------
+ * Une séance se suit de loin, sans toucher le téléphone : l'écran ne doit pas
+ * s'éteindre en plein gainage. Dans l'app native on pose un drapeau sur la
+ * fenêtre (fiable et persistant) ; en PWA on se rabat sur l'API Wake Lock,
+ * qui se relâche dès que l'onglet passe en arrière-plan et qu'il faut donc
+ * redemander au retour. Actif seulement pendant la séance. */
+let keepAwakeWanted = false;
+let wakeLockSentinel = null;
+function requestWebWakeLock(){
+  try{
+    if(!navigator.wakeLock || wakeLockSentinel) return;
+    navigator.wakeLock.request('screen')
+      .then(s=>{ wakeLockSentinel = s; s.addEventListener('release', ()=>{ wakeLockSentinel = null; }); })
+      .catch(()=>{});
+  }catch(e){}
+}
+function releaseWebWakeLock(){
+  if(!wakeLockSentinel) return;
+  try{ wakeLockSentinel.release(); }catch(e){}
+  wakeLockSentinel = null;
+}
+function setKeepAwake(on){
+  keepAwakeWanted = on;
+  if(isNativeApp()){
+    callNativePlugin('ScreenAwake', 'setKeepAwake', {on}).catch(()=>{});
+    return;
+  }
+  if(on) requestWebWakeLock(); else releaseWebWakeLock();
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && keepAwakeWanted && !isNativeApp()) requestWebWakeLock();
+});
 
 /* ---------------- THEME ---------------- */
 const THEME_LABELS = { system:'⚙️ Système', light:'☀️ Clair', dark:'🌙 Sombre' };
@@ -1723,6 +1756,7 @@ function startSession(idx){
     sideSwitchDone:false
   };
   view = 'player';
+  setKeepAwake(true);
   render();
 }
 
@@ -1944,6 +1978,7 @@ function saveReview(){
 function exitPlayer(){
   clearTick();
   cancelResumeCountdown();
+  setKeepAwake(false);
   player=null;
   view='home';
   render();

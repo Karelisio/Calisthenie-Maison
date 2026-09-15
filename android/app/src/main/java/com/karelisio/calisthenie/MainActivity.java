@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppUpdaterPlugin.class);
         registerPlugin(MaterialColorsPlugin.class);
         registerPlugin(HapticsPlugin.class);
+        registerPlugin(ScreenAwakePlugin.class);
         super.onCreate(savedInstanceState);
         applyFullscreen();
     }
