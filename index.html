@@ -198,6 +198,8 @@
     .icon-btn:hover{transform:translateY(-1px);filter:brightness(1.15);}
   }
   .icon-btn:active{filter:brightness(.92);}
+  .icon-btn:disabled{opacity:.3;cursor:not-allowed;}
+  .icon-btn:disabled:active{filter:none;}
 
   .pill{display:inline-flex;align-items:center;gap:6px;background:var(--card2);
     padding:5px 12px;border-radius:var(--radius-full);font-size:12px;color:var(--muted);}
@@ -225,6 +227,16 @@
   .stepper span{min-width:30px;text-align:center;font-size:14px;font-weight:700;}
   .stepper-col{display:flex;flex-direction:column;align-items:flex-start;gap:4px;}
   .stepper-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+
+  .search-field{position:relative;margin-bottom:12px;}
+  .search-field input{padding-left:40px;padding-right:44px;min-height:48px;}
+  .search-field .search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;opacity:.7;pointer-events:none;}
+  .search-clear{
+    position:absolute;right:4px;top:50%;transform:translateY(-50%);
+    width:40px;height:40px;border:none;background:transparent;color:var(--muted);
+    font-size:15px;cursor:pointer;border-radius:50%;
+  }
+  .search-clear:active{background:var(--card2);}
 
   .empty{text-align:center;padding:40px 10px;color:var(--muted);}
   .empty .big{font-size:40px;margin-bottom:8px;}
@@ -804,7 +816,7 @@ function loadSessions(){
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
 function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
 function saveCustomExos(a){ invalidateExoIndex(); try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
-function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, theme:'system', warmup:true, warmupMode:'short', avoidLunges:false}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, theme:'system', warmup:true, warmupMode:'short', avoidLunges:false}; } }
+function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, soundProfile:'classic', theme:'system', warmup:true, warmupMode:'short', avoidLunges:false}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, soundProfile:'classic', theme:'system', warmup:true, warmupMode:'short', avoidLunges:false}; } }
 function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
 function loadEquipment(){ try{ return Object.assign({pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}, JSON.parse(localStorage.getItem(LS_EQUIPMENT)||'{}')); }catch(e){ return {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}; } }
 function saveEquipment(eq){ try{ localStorage.setItem(LS_EQUIPMENT, JSON.stringify(eq)); }catch(e){} }
@@ -842,6 +854,8 @@ let logs = loadLogs();
 let view = 'home'; // home | builder | library | tracking | player
 let builderDraft = null; // session being built
 let libTab = 'exos'; // warmup | exos | stretch
+let libSearch = '';   // filtre de l'onglet Exercices
+let pickSearch = '';  // filtre de la fiche "Choisir un exercice"
 let sheet = null; // {type:'addExo'|'editExo'|'tips'|'equipment', ...}
 let player = null; // player state
 let updateState = { status:'idle', info:null, error:null }; // idle | checking | upToDate | available | downloading | error
@@ -903,7 +917,7 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '9';
+const APP_BUILD = '10';
 
 /* Material You: tint the app's M3 tokens with the device's wallpaper-derived
    colors (Android 12+), falling back to the static palette otherwise. */
@@ -949,6 +963,47 @@ if(window.matchMedia){
   });
 }
 
+/* Recherche insensible aux accents et à la casse : taper "echauffement" ou
+   "pectoraux" doit trouver "Échauffement" et "Pectoraux". */
+function normalizeText(str){
+  return String(str||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+}
+function matchesSearch(exo, query){
+  const q = normalizeText(query).trim();
+  if(!q) return true;
+  const haystack = normalizeText([
+    exo.name, exo.cat, exo.level, (exo.muscles||[]).join(' ')
+  ].filter(Boolean).join(' '));
+  // Chaque mot tapé doit être présent : "pompes triceps" trouve les pompes
+  // qui travaillent les triceps.
+  return q.split(/\s+/).every(word => haystack.includes(word));
+}
+
+/* Estimation de ce que l'échauffement et les étirements ajoutent à une séance.
+   Le contenu étant tiré au hasard à chaque démarrage, on se base sur le nombre
+   d'items prévus par le mode et sur la durée moyenne des bibliothèques. */
+function avgVal(list){ return list.length ? list.reduce((a,e)=>a+e.val,0)/list.length : 0; }
+function estimateFlexSeconds(){
+  if(!settings.warmup) return 0;
+  const plan = FLEX_PLAN[settings.warmupMode==='long' ? 'long' : 'short'];
+  const byCat = cat => WARMUP_LIB.filter(w=>w.cat===cat);
+  const warmup =
+      plan.raise      * (avgVal(byCat('raise')) + FLEX_REST.warmup)
+    + plan.mobilise   * (avgVal([...byCat('mobilise'), ...byCat('activate')]) + FLEX_REST.warmup)
+    + plan.potentiate * (avgVal(byCat('potentiate')) + FLEX_REST.warmup);
+  const stretch = plan.stretches * (avgVal(STRETCH_LIB) + FLEX_REST.stretch);
+  return Math.round(warmup + stretch);
+}
+/* Durée de la séance elle-même, hors échauffement/étirements. */
+function sessionSeconds(session){
+  const lastRest = session.exos.length ? session.exos[session.exos.length-1].rest : 0;
+  const total = session.exos.reduce((a,e)=>{
+    const work = e.type==='time' ? e.val : e.val*2.5; // estimation ~2,5 s par répétition
+    return a + e.sets*(work+e.rest);
+  }, 0);
+  return Math.max(0, total - lastRest);
+}
+
 function allExoLibrary(){ return EXO_LIB.concat(customExos); }
 function hasEquipment(exo){ return !exo.equip || !!equipment[exo.equip]; }
 function availableExoLibrary(){ return allExoLibrary().filter(e=>hasEquipment(e) && !isLungeBlocked(e)); }
@@ -984,17 +1039,37 @@ function toast(msg){
   toast._t = setTimeout(()=>t.classList.remove('show'), 1800);
 }
 
-/* ---------------- AUDIO ---------------- */
+/* ---------------- AUDIO ----------------
+ * Plusieurs sonorités au choix : dans une salle partagée, deux minuteurs qui
+ * font le même bip prêtent à confusion. Chaque profil transpose les
+ * fréquences et change le timbre, ce qui rend les bips franchement
+ * distinguables sans toucher aux appels existants. */
+const SOUND_PROFILES = {
+  // `gain` compense le volume perçu : une onde carrée sonne bien plus fort
+  // qu'une sinusoïde à amplitude égale.
+  classic: {label:'🔔 Classique', ratio:1,    wave:'sine',     gain:1},
+  low:     {label:'🥁 Grave',     ratio:0.5,  wave:'sine',     gain:1.15},
+  high:    {label:'✨ Aigu',      ratio:1.6,  wave:'sine',     gain:0.9},
+  soft:    {label:'🎵 Doux',      ratio:0.75, wave:'triangle', gain:0.95},
+  sharp:   {label:'📟 Net',       ratio:1.2,  wave:'square',   gain:0.45},
+};
+function soundProfile(){ return SOUND_PROFILES[settings.soundProfile] || SOUND_PROFILES.classic; }
 let actx = null;
 function beep(freq, dur, vol){
   if(!settings.sound) return;
+  playTone(freq, dur, vol);
+}
+/* Joue un son en ignorant le réglage "Son" : sert à faire écouter un profil
+   pendant qu'on le choisit. */
+function playTone(freq, dur, vol){
+  const profile = soundProfile();
   try{
     if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
     const o = actx.createOscillator();
     const g = actx.createGain();
-    o.type = 'sine';
-    o.frequency.value = freq;
-    g.gain.value = (vol!=null?vol:0.15);
+    o.type = profile.wave;
+    o.frequency.value = freq * profile.ratio;
+    g.gain.value = (vol!=null?vol:0.15) * (profile.gain!=null?profile.gain:1);
     o.connect(g); g.connect(actx.destination);
     o.start();
     g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur/1000);
@@ -1036,11 +1111,41 @@ function vibrate(pattern){
 /* ---------------- RENDER ROOT ---------------- */
 /* Ferme la feuille courante et relance le chrono s'il avait été mis en pause
    uniquement pour lire les conseils. */
+/* Délai avant de relancer le chrono en sortant des conseils : le temps de
+   reposer le téléphone et de se remettre en position. */
+const RESUME_DELAY_SEC = 3;
+function cancelResumeCountdown(){
+  if(!player) return;
+  if(player.resumeTimerId){ clearInterval(player.resumeTimerId); player.resumeTimerId = null; }
+  player.resumeIn = null;
+}
+function startResumeCountdown(){
+  cancelResumeCountdown();
+  player.resumeIn = RESUME_DELAY_SEC;
+  player.resumeEndAt = Date.now() + RESUME_DELAY_SEC*1000;
+  player.resumeTimerId = setInterval(tickResume, 150);
+  render();
+}
+function tickResume(){
+  if(!player || player.resumeIn == null){ return; }
+  const remainingMs = player.resumeEndAt - Date.now();
+  if(remainingMs <= 0){
+    cancelResumeCountdown();
+    resumePlayer();
+    return;
+  }
+  const remaining = Math.max(1, Math.ceil(remainingMs/1000));
+  if(remaining !== player.resumeIn){
+    player.resumeIn = remaining;
+    beep(700, 90, 0.1);
+    render();
+  }
+}
 function closeSheet(){
   if(sheet && sheet.type === 'update') stopDownloadWatch();
   const resume = !!(sheet && sheet.resumeOnClose);
   sheet = null;
-  if(resume) resumePlayer(); else render();
+  if(resume) startResumeCountdown(); else render();
 }
 function render(){
   try{
@@ -1111,26 +1216,22 @@ function renderHome(){
   if(sessions.length===0){
     return newBtn + `<div class="empty"><div class="big">🧘</div><h3>Aucune séance</h3><p>Crée ta première séance avec le bouton ci-dessus.</p></div>`;
   }
+  const flexSec = estimateFlexSeconds();
   return newBtn + sessions.map((s,i)=>{
     const totalSets = s.exos.reduce((a,e)=>a+e.sets,0);
-    // Le dernier repos ne compte pas : la séance s'arrête à la dernière série.
-    const lastRest = s.exos.length ? s.exos[s.exos.length-1].rest : 0;
-    const estMin = Math.round(Math.max(0, s.exos.reduce((a,e)=>{
-      const work = e.type==='time' ? e.val : e.val*2.5; // estimate ~2.5s per rep
-      return a + e.sets*(work+e.rest);
-    },0) - lastRest)/60);
+    const workSec = sessionSeconds(s);
+    const estMin = Math.round((workSec + flexSec)/60);
+    const flexMin = Math.round(flexSec/60);
     const muscles = getSessionMuscles(s);
     return `
     <div class="card">
-      <div class="row between">
-        <div>
-          <h2>${escapeHtml(s.name)}</h2>
-          <p>${s.exos.length} exercices · ${totalSets} séries · ~${estMin} min</p>
-        </div>
-        <div class="row">
-          <button class="icon-btn" data-edit-session="${i}" title="Modifier">✏️</button>
-          <button class="icon-btn" data-del-session="${i}" title="Supprimer">🗑️</button>
-        </div>
+      <h2>${escapeHtml(s.name)}</h2>
+      <p>${s.exos.length} exercices · ${totalSets} séries · ~${estMin} min${flexMin > 0 ? ` <span style="opacity:.8;">(dont ~${flexMin} min d'échauffement + étirements)</span>` : ''}</p>
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px;">
+        <button class="icon-btn" data-move-session="${i}" data-dir="-1" title="Monter" aria-label="Monter la séance" ${i===0?'disabled':''}>↑</button>
+        <button class="icon-btn" data-move-session="${i}" data-dir="1" title="Descendre" aria-label="Descendre la séance" ${i===sessions.length-1?'disabled':''}>↓</button>
+        <button class="icon-btn" data-edit-session="${i}" title="Modifier">✏️</button>
+        <button class="icon-btn" data-del-session="${i}" title="Supprimer">🗑️</button>
       </div>
       <div class="row wrap" style="margin-top:10px;">
         ${s.exos.slice(0,5).map(e=>`<span class="pill">${e.icon} ${escapeHtml(e.name)}</span>`).join('')}
@@ -1143,7 +1244,7 @@ function renderHome(){
   <div class="card tight" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
     <span style="font-size:13px;color:var(--muted);">Réglages <span style="opacity:.65;">· version ${APP_BUILD}</span></span>
     <div class="row wrap">
-      <button class="btn sm ${settings.sound?'accent':'ghost'}" data-toggle="sound">🔊 Son ${settings.sound?'ON':'OFF'}</button>
+      <button class="btn sm ${settings.sound?'accent':'ghost'}" data-sound-btn="1">🔊 Son ${settings.sound?('· '+soundProfile().label.replace(/^\S+\s/,'')):'OFF'}</button>
       <button class="btn sm ${settings.vibrate?'accent':'ghost'}" data-toggle="vibrate">📳 Vibration ${settings.vibrate?'ON':'OFF'}</button>
       <button class="btn sm ${settings.warmup?'accent':'ghost'}" data-warmup-btn="1">🔥 Échauff. + étir. ${settings.warmup?('ON · '+(settings.warmupMode==='long'?'long':'court')):'OFF'}</button>
       <button class="btn sm ${settings.theme!=='system'?'accent':'ghost'}" style="min-width:112px;" data-action="cycleTheme">${THEME_LABELS[settings.theme]}</button>
@@ -1173,7 +1274,7 @@ function renderBuilder(){
 
   <h2 style="margin:6px 2px 10px;">Exercices (${d.exos.length})</h2>
   ${d.exos.length===0? `<div class="empty" style="padding:20px;"><div class="big">➕</div><p>Ajoute des exercices depuis la bibliothèque.</p></div>` : ''}
-  ${d.exos.map((e,i)=>renderBuilderExo(e,i)).join('')}
+  ${d.exos.map((e,i)=>renderBuilderExo(e,i,d.exos.length)).join('')}
 
   <button class="btn accent block" data-action="openAddExo" style="margin-top:6px;">+ Ajouter un exercice</button>
 
@@ -1183,20 +1284,22 @@ function renderBuilder(){
   </div>
   `;
 }
-function renderBuilderExo(e,i){
+function renderBuilderExo(e,i,count){
   const libExo = getExoById(e.libId);
   const equipNote = (libExo && libExo.equip) ? ` · 🎒 ${EQUIPMENT_LABELS[libExo.equip]}` : '';
   return `
   <div class="exo-item" style="flex-direction:column;align-items:stretch;">
-    <div class="row between">
-      <div class="row" style="gap:10px;min-width:0;">
+    <div class="row between wrap">
+      <div class="row" style="gap:10px;min-width:0;flex:1;">
         <div class="emoji">${e.icon}</div>
         <div class="meta">
           <b>${escapeHtml(e.name)}</b>
           <small>${e.type==='time' ? 'Basé sur le temps' : 'Basé sur les répétitions'}${equipNote}</small>
         </div>
       </div>
-      <div class="row" style="gap:6px;flex-shrink:0;">
+      <div class="row wrap" style="gap:6px;justify-content:flex-end;">
+        <button class="icon-btn" data-move-exo="${i}" data-dir="-1" title="Monter" aria-label="Monter cet exercice" ${i===0?'disabled':''}>↑</button>
+        <button class="icon-btn" data-move-exo="${i}" data-dir="1" title="Descendre" aria-label="Descendre cet exercice" ${i===count-1?'disabled':''}>↓</button>
         <button class="icon-btn" data-tips="${e.libId}" title="Conseils">💡</button>
         <button class="icon-btn" data-remove-exo="${i}" title="Retirer" aria-label="Retirer cet exercice">✕</button>
       </div>
@@ -1261,27 +1364,42 @@ function renderLibSection(entries, catLabels, noteFor){
     cats[cat].map(e=>renderLibCard(e, noteFor(e))).join('')
   ).join('');
 }
+function renderSearchField(id, value, placeholder){
+  return `<div class="search-field">
+    <span class="search-icon">🔎</span>
+    <input type="text" id="${id}" value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}" autocomplete="off" autocorrect="off" spellcheck="false">
+    ${value ? `<button class="search-clear" data-clear-search="${id}" title="Effacer" aria-label="Effacer la recherche">✕</button>` : ''}
+  </div>`;
+}
+function renderNoMatch(query){
+  return `<div class="empty" style="padding:28px 10px;"><div class="big">🔎</div><p>Aucun exercice ne correspond à « ${escapeHtml(query)} ».</p></div>`;
+}
 function renderLibrary(){
   const tabs = `<nav class="tabs" style="margin:0 0 14px;">${
     Object.keys(LIB_TABS).map(k=>`<button data-libtab="${k}" class="${libTab===k?'active':''}">${LIB_TABS[k]}</button>`).join('')
   }</nav>`;
+  const search = renderSearchField('libSearch', libSearch, 'Rechercher un exercice ou un muscle…');
+  const filter = list => list.filter(e=>matchesSearch(e, libSearch));
 
   if(libTab==='warmup'){
-    return tabs + `<p style="margin:0 0 12px;">Mouvements dynamiques à faire avant l'effort. L'app en sélectionne automatiquement selon les muscles de ta séance — tu peux aussi les consulter ici.</p>`
-      + renderLibSection(WARMUP_LIB, WARMUP_CATS, e=>`${e.val}s · dynamique`);
+    const list = filter(WARMUP_LIB);
+    return tabs + search + `<p style="margin:0 0 12px;">Mouvements dynamiques à faire avant l'effort. L'app en sélectionne automatiquement selon les muscles de ta séance — tu peux aussi les consulter ici.</p>`
+      + (list.length ? renderLibSection(list, WARMUP_CATS, e=>`${e.val}s · dynamique`) : renderNoMatch(libSearch));
   }
   if(libTab==='stretch'){
-    return tabs + `<p style="margin:0 0 12px;">Étirements statiques de fin de séance : garde chaque position sans à-coups, jusqu'à la sensation d'étirement, jamais à la douleur.</p>`
-      + renderLibSection(STRETCH_LIB, STRETCH_CATS, e=>`${e.val}s de maintien`);
+    const list = filter(STRETCH_LIB);
+    return tabs + search + `<p style="margin:0 0 12px;">Étirements statiques de fin de séance : garde chaque position sans à-coups, jusqu'à la sensation d'étirement, jamais à la douleur.</p>`
+      + (list.length ? renderLibSection(list, STRETCH_CATS, e=>`${e.val}s de maintien`) : renderNoMatch(libSearch));
   }
-  return tabs
+  const list = filter(allExoLibrary());
+  return tabs + search
     + `<button class="btn ghost block" data-action="openEquipment" style="margin-bottom:10px;">🎒 Gérer mon équipement</button>
        <button class="btn accent block" data-action="openCustomExo" style="margin-bottom:14px;">+ Créer un exercice personnalisé</button>`
-    + renderLibSection(allExoLibrary(), null, e=>{
+    + (list.length ? renderLibSection(list, null, e=>{
         const levelNote = e.level ? ` · ${escapeHtml(e.level)}` : '';
         const bandNote = e.bandTip ? ' · 🎗️ élastique en option' : '';
         return `${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${e.sets}×${e.val}${e.type==='time'?'s':''}${levelNote}${bandNote}`;
-      });
+      }) : renderNoMatch(libSearch));
 }
 
 /* ---------------- TRACKING ---------------- */
@@ -1334,22 +1452,26 @@ function renderTracking(){
 function renderSheet(){
   if(!sheet) return '';
   if(sheet.type==='addExo'){
+    const matching = availableExoLibrary().filter(e=>matchesSearch(e, pickSearch));
     const cats = {};
-    availableExoLibrary().forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
+    matching.forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
     const equipLockedCount = allExoLibrary().filter(e=>!hasEquipment(e)).length;
     const lungeLockedCount = allExoLibrary().filter(isLungeBlocked).length;
     let items = '';
     Object.keys(cats).forEach(cat=>{
       items += `<div class="cat-title">${escapeHtml(cat)}</div>`;
       cats[cat].forEach(e=>{
+        const muscles = (e.muscles&&e.muscles.length) ? ` · 🎯 ${escapeHtml(e.muscles.slice(0,3).join(' · '))}` : '';
         items += `<div class="lib-item" data-pick-exo="${e.id}">
           <span class="emoji">${e.icon}</span>
-          <div><b>${escapeHtml(e.name)}</b><small>${e.type==='time'?e.val+'s':e.val+' reps'} · ${e.sets} séries</small></div>
+          <div><b>${escapeHtml(e.name)}</b><small>${e.type==='time'?e.val+'s':e.val+' reps'} · ${e.sets} séries${muscles}</small></div>
         </div>`;
       });
     });
+    if(!matching.length) items = renderNoMatch(pickSearch);
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <h3>Choisir un exercice</h3>
+      ${renderSearchField('pickSearch', pickSearch, 'Rechercher un exercice ou un muscle…')}
       ${items}
       ${equipLockedCount>0? `<p style="margin:12px 2px 0;">🔒 ${equipLockedCount} exercice${equipLockedCount>1?'s':''} nécessitant du matériel non activé. <button class="tips-btn" data-action="openEquipment" style="margin:8px 0 0;">🎒 Gérer mon équipement</button></p>` : ''}
       ${lungeLockedCount>0? `<p style="margin:12px 2px 0;">🦵 ${lungeLockedCount} exercice${lungeLockedCount>1?'s':''} en fente désactivé${lungeLockedCount>1?'s':''} (option "Éviter les fentes").</p>` : ''}
@@ -1462,6 +1584,18 @@ function renderSheet(){
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button class="btn ${settings.warmupMode!=='long'?'primary':'ghost'} block" data-set-warmup-mode="short">🌤️ Court (~3 min)</button>
         <button class="btn ${settings.warmupMode==='long'?'primary':'ghost'} block" data-set-warmup-mode="long">🔥 Long (~7 min)</button>
+      </div>
+      <button class="btn ghost block" style="margin-top:14px;" data-action="closeSheet">Fermer</button>
+    </div></div>`;
+  }
+  if(sheet.type==='soundProfile'){
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+      <h3>🔔 Sonorité des bips</h3>
+      <p style="margin-bottom:14px;">Choisis une sonorité distincte pour ne pas confondre ton minuteur avec celui d'un voisin. Appuie sur un choix pour l'entendre.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${Object.keys(SOUND_PROFILES).map(k=>
+          `<button class="btn ${settings.soundProfile===k?'primary':'ghost'} block" data-set-sound-profile="${k}">${SOUND_PROFILES[k].label}</button>`
+        ).join('')}
       </div>
       <button class="btn ghost block" style="margin-top:14px;" data-action="closeSheet">Fermer</button>
     </div></div>`;
@@ -1707,9 +1841,26 @@ function goToNextStep(){
   player.stepIdx++;
   if(player.stepIdx >= player.steps.length){ finishSession(); return; }
   player.phase='work';
+  startWorkPhase();
+}
+/* Remet la phase de travail à zéro pour l'étape courante. */
+function startWorkPhase(){
   const st = currentStep();
   if(st.exo.type==='time'){ startCountdown(st.exo.val); }
   else { player.remaining=null; player.running=false; clearTick(); render(); }
+}
+/* Revenir en arrière : depuis un repos on repart sur l'exercice qu'on vient de
+   faire, sinon on remonte à l'étape précédente. */
+function goToPrevStep(){
+  clearTick();
+  cancelResumeCountdown();
+  if(player.phase === 'rest'){
+    player.phase = 'work';
+  } else if(player.stepIdx > 0){
+    player.stepIdx--;
+    player.phase = 'work';
+  }
+  startWorkPhase();
 }
 
 function finishSession(){
@@ -1750,6 +1901,7 @@ function saveReview(){
 
 function exitPlayer(){
   clearTick();
+  cancelResumeCountdown();
   player=null;
   view='home';
   render();
@@ -1822,7 +1974,18 @@ function renderPlayer(){
   let centerHtml = '';
   let controlsHtml = '';
 
-  if(player.phase==='work'){
+  // Un pas en arrière n'a de sens que s'il reste quelque chose derrière :
+  // depuis un repos on revient sur l'exercice, sinon sur l'étape précédente.
+  const canGoBack = player.phase === 'rest' || player.stepIdx > 0;
+  const prevBtn = canGoBack ? `<button class="btn ghost" data-action="prev" title="Exercice précédent">⏮ Précédent</button>` : '';
+
+  if(player.resumeIn != null){
+    centerHtml = `<div class="big-emoji">🧘</div><div class="timer glow-rest">${player.resumeIn}</div><div class="side-switch-label">Reprise dans un instant — remets-toi en place</div>`;
+    controlsHtml = `
+      <div class="controls">
+        <button class="btn primary" data-action="resumeNow">▶ Reprendre maintenant</button>
+      </div>`;
+  } else if(player.phase==='work'){
     if(player.sideBreak){
       centerHtml = `<div class="big-emoji">🔁</div><div class="timer glow-rest">${formatTime(player.sideBreak.remaining)}</div><div class="side-switch-label">Changez de côté</div>`;
       controlsHtml = `
@@ -1835,6 +1998,7 @@ function renderPlayer(){
         <div class="controls">
           ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">${player.endAt===null?'▶ Démarrer':'▶ Reprendre'}</button>`}
           <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
+          ${prevBtn}
           <button class="btn ghost" data-action="skip">⏭ Passer</button>
         </div>`;
     } else {
@@ -1842,6 +2006,7 @@ function renderPlayer(){
       controlsHtml = `
         <div class="controls">
           <button class="btn primary" data-action="completeReps">✓ Série terminée</button>
+          ${prevBtn}
           <button class="btn ghost" data-action="skip">⏭ Passer</button>
         </div>`;
     }
@@ -1855,6 +2020,7 @@ function renderPlayer(){
       <div class="controls">
         ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">${player.endAt===null?'▶ Démarrer':'▶ Reprendre'}</button>`}
         <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
+        ${prevBtn}
         <button class="btn ghost" data-action="skip">⏭ Passer le repos</button>
       </div>`;
   }
@@ -1965,6 +2131,58 @@ function attachEvents(){
     ()=>{ settings.warmup=!settings.warmup; saveSettings(settings); render(); },
     ()=>{ sheet={type:'warmupMode'}; render(); }
   ));
+  // Appui court : son ON/OFF. Appui long : choix de la sonorité.
+  app.querySelectorAll('[data-sound-btn]').forEach(b=>attachLongPress(b,
+    ()=>{ settings.sound=!settings.sound; saveSettings(settings); if(settings.sound) beep(880,120,0.12); render(); },
+    ()=>{ sheet={type:'soundProfile'}; render(); }
+  ));
+  app.querySelectorAll('[data-set-sound-profile]').forEach(b=>b.onclick = ()=>{
+    settings.soundProfile = b.getAttribute('data-set-sound-profile');
+    saveSettings(settings);
+    render();
+    // Se fait entendre même si le son est coupé : on est en train de le choisir.
+    playTone(880, 140, 0.14);
+    setTimeout(()=>playTone(1200, 180, 0.16), 170);
+  });
+
+  app.querySelectorAll('[data-move-session]').forEach(b=>b.onclick = ()=>{
+    const i = parseInt(b.getAttribute('data-move-session'));
+    const j = i + parseInt(b.getAttribute('data-dir'));
+    if(j < 0 || j >= sessions.length) return;
+    const [moved] = sessions.splice(i, 1);
+    sessions.splice(j, 0, moved);
+    saveSessions(sessions);
+    render();
+  });
+  app.querySelectorAll('[data-move-exo]').forEach(b=>b.onclick = ()=>{
+    const i = parseInt(b.getAttribute('data-move-exo'));
+    const j = i + parseInt(b.getAttribute('data-dir'));
+    if(!builderDraft || j < 0 || j >= builderDraft.exos.length) return;
+    const [moved] = builderDraft.exos.splice(i, 1);
+    builderDraft.exos.splice(j, 0, moved);
+    render();
+  });
+
+  // Recherche : on réaffiche à chaque frappe, donc il faut rendre le focus et
+  // replacer le curseur, sinon le champ se vide visuellement à chaque lettre.
+  [['libSearch', v=>{ libSearch = v; }], ['pickSearch', v=>{ pickSearch = v; }]].forEach(([id, set])=>{
+    const input = document.getElementById(id);
+    if(!input) return;
+    input.oninput = ()=>{
+      const pos = input.selectionStart;
+      set(input.value);
+      render();
+      const again = document.getElementById(id);
+      if(again){ again.focus(); try{ again.setSelectionRange(pos, pos); }catch(e){} }
+    };
+  });
+  app.querySelectorAll('[data-clear-search]').forEach(b=>b.onclick = ()=>{
+    const id = b.getAttribute('data-clear-search');
+    if(id === 'libSearch') libSearch = ''; else pickSearch = '';
+    render();
+    const again = document.getElementById(id);
+    if(again) again.focus();
+  });
   app.querySelectorAll('[data-set-warmup-mode]').forEach(b=>b.onclick = ()=>{
     settings.warmupMode = b.getAttribute('data-set-warmup-mode');
     saveSettings(settings);
@@ -2006,7 +2224,7 @@ function attachEvents(){
   });
 
   const actionMap = {
-    openAddExo: ()=>{ sheet={type:'addExo'}; render(); },
+    openAddExo: ()=>{ pickSearch=''; sheet={type:'addExo'}; render(); },
     openCustomExo: ()=>{ sheet={type:'customExo', name:'', exoType:'reps', cat:CUSTOM_CAT_OPTIONS[0], muscles:[]}; render(); },
     openEquipment: ()=>{ sheet={type:'equipment'}; render(); },
     openExport: ()=>{ sheet={type:'export'}; render(); },
@@ -2077,7 +2295,7 @@ function attachEvents(){
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
       if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
       if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
-      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,theme:'system',warmup:true,warmupMode:'short',avoidLunges:false}, data.settings); saveSettings(settings); applyTheme(); }
+      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,soundProfile:'classic',theme:'system',warmup:true,warmupMode:'short',avoidLunges:false}, data.settings); saveSettings(settings); applyTheme(); }
       if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
       if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
       sheet=null; view='home'; toast('Données importées ✓'); render();
@@ -2111,8 +2329,10 @@ function attachEvents(){
     },
     pause: pausePlayer,
     resume: resumePlayer,
+    resumeNow: ()=>{ cancelResumeCountdown(); resumePlayer(); },
     resetPhase: resetPlayerPhase,
     skip: skipCurrent,
+    prev: goToPrevStep,
     skipSideBreak: skipSideBreak,
     completeReps: completeRepsSet,
     restMinus: ()=>adjustRest(-15),
