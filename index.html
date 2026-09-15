@@ -228,6 +228,9 @@
   .stepper-col{display:flex;flex-direction:column;align-items:flex-start;gap:4px;}
   .stepper-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
 
+  .set-field{width:92px;flex:0 0 auto;}
+  .set-field input{text-align:center;padding:10px 6px;}
+
   .search-field{position:relative;margin-bottom:12px;}
   .search-field input{padding-left:40px;padding-right:44px;min-height:48px;}
   .search-field .search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;opacity:.7;pointer-events:none;}
@@ -956,7 +959,7 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '11';
+const APP_BUILD = '12';
 
 /* Material You: tint the app's M3 tokens with the device's wallpaper-derived
    colors (Android 12+), falling back to the static palette otherwise. */
@@ -1494,10 +1497,19 @@ function renderTracking(){
     const exoRows = log.exercises.map(ex=>{
       const unit = ex.type==='time' ? 's' : '';
       const plannedStr = `${ex.plannedSets}×${ex.plannedVal}${unit}`;
-      const statusHtml = ex.completed
-        ? `<span class="pill" style="color:var(--accent2);">✓ ${plannedStr}</span>`
-        : `<span class="pill" style="color:var(--accent);">${ex.actualSets}×${ex.actualVal}${unit} <span style="color:var(--muted);">(obj. ${plannedStr})</span></span>`;
-      return `<div class="row between" style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);">
+      let statusHtml;
+      if(Array.isArray(ex.reps) && ex.reps.length){
+        // Détail série par série
+        const detail = ex.reps.map(r=>r+unit).join(' · ');
+        statusHtml = `<span class="pill" style="color:${ex.completed?'var(--accent2)':'var(--accent)'};">${ex.completed?'✓ ':''}${escapeHtml(detail)} <span style="color:var(--muted);">(obj. ${plannedStr})</span></span>`;
+      } else if(ex.completed){
+        statusHtml = `<span class="pill" style="color:var(--accent2);">✓ ${plannedStr}</span>`;
+      } else {
+        // Ancien format (séances enregistrées avant le suivi série par série)
+        const done = `${ex.actualSets!=null?ex.actualSets:'?'}×${ex.actualVal!=null?ex.actualVal:'?'}${unit}`;
+        statusHtml = `<span class="pill" style="color:var(--accent);">${escapeHtml(done)} <span style="color:var(--muted);">(obj. ${plannedStr})</span></span>`;
+      }
+      return `<div class="row between wrap" style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);gap:6px;">
         <span>${ex.icon} ${escapeHtml(ex.name)}</span>
         ${statusHtml}
       </div>`;
@@ -1944,7 +1956,13 @@ function finishSession(){
   player.phase='review';
   player.feeling = null;
   player.note = '';
-  player.review = player.session.exos.map(e=>({completed:true, actualSets:e.sets, actualVal:e.val}));
+  // Une entrée par série, pré-remplie avec l'objectif : valider "comme prévu"
+  // reste un seul appui, le détail ne s'ouvre que si on le demande.
+  player.review = player.session.exos.map(e=>({
+    completed:true,
+    detailed:false,
+    reps: Array.from({length: Math.max(1, e.sets||1)}, ()=>e.val)
+  }));
   beep(660,150,0.15); setTimeout(()=>beep(880,150,0.15),160); setTimeout(()=>beep(1100,220,0.18),320);
   vibrate([100,50,100,50,150]);
   render();
@@ -1958,12 +1976,14 @@ function saveReview(){
     dateISO: new Date().toISOString(),
     exercises: s.exos.map((e,i)=>({e,i})).filter(({e})=>!e.meta).map(({e,i})=>{
       const ans = player.review[i];
+      const reps = (ans.reps||[]).map(r=>Math.max(0, parseInt(r)||0));
+      // "reps" n'est enregistré que si l'utilisateur a détaillé : sinon la
+      // séance a été faite comme prévu et l'objectif suffit à la décrire.
       return {
         name:e.name, icon:e.icon, type:e.type,
         plannedSets:e.sets, plannedVal:e.val,
-        completed: ans.completed,
-        actualSets: ans.completed ? e.sets : Math.max(0, parseInt(ans.actualSets)||0),
-        actualVal: ans.completed ? e.val : Math.max(0, parseInt(ans.actualVal)||0)
+        completed: !ans.detailed || reps.every(r=>r>=e.val),
+        reps: ans.detailed ? reps : null
       };
     }),
     feeling: player.feeling || null,
@@ -1988,23 +2008,23 @@ function renderReviewExo(e,i){
   const ans = player.review[i];
   const unit = e.type==='time' ? 's' : '';
   return `<div class="card tight" style="margin-bottom:10px;">
-    <div class="row between">
+    <div class="row between wrap">
       <b>${e.icon} ${escapeHtml(e.name)}</b>
       <span class="pill">Objectif ${e.sets}×${e.val}${unit}</span>
     </div>
-    <div class="row" style="margin-top:10px;gap:8px;">
-      <button class="btn sm ${ans.completed?'accent':'ghost'}" data-review-done="${i}" data-val="1">✓ Réussi</button>
-      <button class="btn sm ${!ans.completed?'danger':'ghost'}" data-review-done="${i}" data-val="0">✕ Pas complet</button>
+    <div class="row wrap" style="margin-top:10px;gap:8px;">
+      <button class="btn sm ${!ans.detailed?'accent':'ghost'}" data-review-mode="${i}" data-val="done">✓ Comme prévu</button>
+      <button class="btn sm ${ans.detailed?'accent':'ghost'}" data-review-mode="${i}" data-val="detail">✏️ Détailler</button>
     </div>
-    ${!ans.completed ? `
-    <div class="row" style="margin-top:10px;gap:10px;">
-      <label class="field" style="flex:1;margin-bottom:0;"><span>Séries réussies</span>
-        <input type="number" min="0" data-review-field="sets" data-i="${i}" value="${ans.actualSets}">
-      </label>
-      <label class="field" style="flex:1;margin-bottom:0;"><span>${e.type==='time'?'Temps max (s)':'Reps max'}</span>
-        <input type="number" min="0" data-review-field="val" data-i="${i}" value="${ans.actualVal}">
-      </label>
-    </div>` : ''}
+    ${ans.detailed ? `
+    <div class="row wrap" style="margin-top:10px;gap:10px;">
+      ${ans.reps.map((r,si)=>`
+        <label class="field set-field" style="margin-bottom:0;">
+          <span>Série ${si+1}${unit ? ' (s)' : ''}</span>
+          <input type="number" min="0" inputmode="numeric" data-review-rep="${i}" data-set="${si}" value="${escapeHtml(String(r))}">
+        </label>`).join('')}
+    </div>
+    <p style="margin-top:8px;font-size:12px;">Mets 0 sur une série que tu n'as pas faite.</p>` : ''}
   </div>`;
 }
 
@@ -2467,16 +2487,21 @@ function attachEvents(){
     render();
   });
 
-  app.querySelectorAll('[data-review-done]').forEach(b=>b.onclick = ()=>{
-    const i = parseInt(b.getAttribute('data-review-done'));
-    player.review[i].completed = b.getAttribute('data-val')==='1';
+  app.querySelectorAll('[data-review-mode]').forEach(b=>b.onclick = ()=>{
+    const i = parseInt(b.getAttribute('data-review-mode'));
+    const ans = player.review[i];
+    const exo = player.session.exos[i];
+    ans.detailed = b.getAttribute('data-val')==='detail';
+    if(!ans.detailed){
+      ans.completed = true;
+      ans.reps = Array.from({length: Math.max(1, exo.sets||1)}, ()=>exo.val);
+    }
     render();
   });
-  app.querySelectorAll('[data-review-field]').forEach(inp=>inp.oninput = ()=>{
-    const i = parseInt(inp.getAttribute('data-i'));
-    const field = inp.getAttribute('data-review-field');
-    if(field==='sets') player.review[i].actualSets = inp.value;
-    else player.review[i].actualVal = inp.value;
+  app.querySelectorAll('[data-review-rep]').forEach(inp=>inp.oninput = ()=>{
+    const i = parseInt(inp.getAttribute('data-review-rep'));
+    const si = parseInt(inp.getAttribute('data-set'));
+    player.review[i].reps[si] = inp.value;
   });
   app.querySelectorAll('[data-feeling]').forEach(b=>b.onclick = ()=>{
     const v = b.getAttribute('data-feeling');
