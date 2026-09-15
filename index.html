@@ -727,14 +727,53 @@ function shuffled(arr){
 /* Vrai si l'exercice est un mouvement en fente, à exclure quand l'utilisateur
    a désactivé ce type d'exercice (ex : gêne au genou). */
 function isLungeBlocked(e){ return !!(settings.avoidLunges && e.lunge); }
-/* Prend jusqu'à `count` entrées : d'abord celles qui ciblent les muscles de la
-   séance, puis, s'il en manque, des entrées générales pour compléter. */
-function pickFlexItems(pool, muscles, count){
+
+/* Poids de chaque muscle dans une séance. Une simple liste de muscles ne
+   suffit pas : une séance de 3 exercices de poussée et 1 de jambes cite
+   autant "Quadriceps" que "Pectoraux", et l'échauffement se retrouvait tiré
+   au hasard parmi tout ça. On compte donc le volume réel — le nombre de
+   séries qui sollicitent chaque muscle — en donnant plus de poids au premier
+   muscle listé d'un exercice, qui en est le muscle principal. */
+const SECONDARY_MUSCLE_WEIGHT = 0.45;
+function getSessionMuscleWeights(session){
+  const weights = {};
+  session.exos.forEach(e=>{
+    const libExo = getExoById(e.libId);
+    const muscles = (libExo && libExo.muscles) ? libExo.muscles : [];
+    const sets = Math.max(1, e.sets || 1);
+    muscles.forEach((m, idx)=>{
+      weights[m] = (weights[m] || 0) + sets * (idx === 0 ? 1 : SECONDARY_MUSCLE_WEIGHT);
+    });
+  });
+  return weights;
+}
+/* Pertinence d'un échauffement/étirement pour une séance : somme des poids
+   des muscles de la séance qu'il couvre. */
+function flexScore(entry, weights){
+  let score = 0;
+  (entry.muscles||[]).forEach((em, idx)=>{
+    const share = idx === 0 ? 1 : SECONDARY_MUSCLE_WEIGHT;
+    Object.keys(weights).forEach(m=>{
+      if(m.startsWith(em) || em.startsWith(m)) score += weights[m] * share;
+    });
+  });
+  return score;
+}
+/* Prend jusqu'à `count` entrées, les plus pertinentes d'abord, puis des
+   entrées générales s'il en manque. */
+function pickFlexItems(pool, weights, count){
   if(count<=0) return [];
   const available = pool.filter(e=>hasEquipment(e) && !isLungeBlocked(e));
-  const matched = available.filter(e=>muscles.some(m=>matchesMuscle(e,m)));
-  const rest = available.filter(e=>!matched.includes(e));
-  return [...shuffled(matched), ...shuffled(rest)].slice(0, count);
+  const scored = available.map(e=>({
+    entry: e,
+    // Un peu d'aléatoire pour ne pas rejouer exactement la même sélection à
+    // chaque séance, mais pas assez pour qu'un candidat hors sujet passe
+    // devant un candidat nettement plus pertinent.
+    score: flexScore(e, weights) * (0.85 + 0.3*Math.random())
+  }));
+  const matched = scored.filter(s=>s.score > 0).sort((a,b)=>b.score-a.score).map(s=>s.entry);
+  const rest = shuffled(available.filter(e=>!matched.includes(e)));
+  return [...matched, ...rest].slice(0, count);
 }
 /* Temps de transition entre deux mouvements : de quoi changer de position,
    se replacer au sol ou attraper la barre sans courir après le chrono. */
@@ -748,19 +787,19 @@ function toFlexExo(entry, meta, rest){
 }
 function buildWarmupExos(session){
   const plan = FLEX_PLAN[settings.warmupMode==='long' ? 'long' : 'short'];
-  const muscles = getSessionMuscles(session);
+  const weights = getSessionMuscleWeights(session);
   const byCat = cat => WARMUP_LIB.filter(w=>w.cat===cat);
   const picked = [
-    ...pickFlexItems(byCat('raise'), muscles, plan.raise),
-    ...pickFlexItems([...byCat('mobilise'), ...byCat('activate')], muscles, plan.mobilise),
-    ...pickFlexItems(byCat('potentiate'), muscles, plan.potentiate),
+    ...pickFlexItems(byCat('raise'), weights, plan.raise),
+    ...pickFlexItems([...byCat('mobilise'), ...byCat('activate')], weights, plan.mobilise),
+    ...pickFlexItems(byCat('potentiate'), weights, plan.potentiate),
   ];
   return picked.map(w=>toFlexExo(w, 'warmup', FLEX_REST.warmup));
 }
 function buildStretchExos(session){
   const plan = FLEX_PLAN[settings.warmupMode==='long' ? 'long' : 'short'];
-  const muscles = getSessionMuscles(session);
-  return pickFlexItems(STRETCH_LIB, muscles, plan.stretches).map(s=>toFlexExo(s, 'stretch', FLEX_REST.stretch));
+  const weights = getSessionMuscleWeights(session);
+  return pickFlexItems(STRETCH_LIB, weights, plan.stretches).map(s=>toFlexExo(s, 'stretch', FLEX_REST.stretch));
 }
 
 /* Muscles proposés lors de la création d'un exercice personnalisé — mêmes
@@ -1661,10 +1700,13 @@ function startSession(idx){
     if(!session.exos.length){ toast('Cette séance ne contient que des fentes, désactivées dans "Éviter les fentes".'); return; }
   }
   if(settings.warmup){
+    // On se base sur les exercices réellement retenus (fentes déjà écartées
+    // le cas échéant), pour que l'échauffement corresponde à ce qui sera fait.
+    const mainExos = {exos: session.exos.slice()};
     session.exos = [
-      ...buildWarmupExos(sessions[idx]),
+      ...buildWarmupExos(mainExos),
       ...session.exos,
-      ...buildStretchExos(sessions[idx]),
+      ...buildStretchExos(mainExos),
     ];
   }
   const steps = flattenSteps(session);
