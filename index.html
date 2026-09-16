@@ -1002,11 +1002,15 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '15';
+const APP_BUILD = '16';
 /* Journal des nouveautés, du plus récent au plus ancien. À compléter à chaque
    fois qu'on incrémente APP_BUILD : c'est ce que l'app affiche toute seule au
    premier lancement après une mise à jour. */
 const CHANGELOG = [
+  {v:'16', title:'Le logo suit maintenant tes couleurs', items:[
+    "Le logo en haut de l'app reprend le dessin de la nouvelle icône, au lieu de l'ancien pictogramme.",
+    "Il suit tes couleurs Material You, comme le reste de l'app."
+  ]},
   {v:'15', title:'Nouveau nom, nouvelle icône', items:[
     "L'appli s'appelle désormais Kalisto.",
     "Nouvelle icône, dessinée pour s'adapter à la couleur de ton fond d'écran (Android 12+) au lieu du carré orange générique d'avant.",
@@ -1042,10 +1046,6 @@ const CHANGELOG = [
   {v:'9', title:'Mise à jour intégrée réparée', items:[
     "Le téléchargement affiche sa progression, peut être annulé, et dit ce qui coince en cas d'échec.",
     "L'app ne se déclare plus à jour alors qu'elle ne l'est pas."
-  ]},
-  {v:'8', title:'Appuis longs fiables', items:[
-    "Un appui long ne rate plus parce que le doigt a bougé de deux millimètres.",
-    "Une courte vibration confirme le déclenchement."
   ]},
 ];
 
@@ -1358,7 +1358,7 @@ function renderHeader(){
   return `
   <div class="header">
     <div class="brand">
-      <div class="logo">🏋️</div>
+      <div class="logo"><svg viewBox="0 0 108 108" width="26" height="26" aria-hidden="true"><g fill="currentColor" stroke="currentColor"><path stroke="none" d="M33.5,30 L74.5,30 A2.5,2.5 0 0 1 77,32.5 A2.5,2.5 0 0 1 74.5,35 L33.5,35 A2.5,2.5 0 0 1 31,32.5 A2.5,2.5 0 0 1 33.5,30 Z"/><path fill="none" stroke-width="5" stroke-linecap="round" d="M44,35 Q43.5,44.5 46.5,54"/><path fill="none" stroke-width="5" stroke-linecap="round" d="M64,35 Q64.5,44.5 61.5,54"/><path stroke="none" d="M48.6,43 A5.4,5.4 0 1 0 59.4,43 A5.4,5.4 0 1 0 48.6,43 Z"/><path stroke="none" d="M47.5,54 Q54,55.6 60.5,54 C60.5,58 58.6,62 58.3,66 C58.1,68.5 58.6,70.5 58.5,73 C58.3,77 57,82 56,85 Q56,87 54.5,87 L53.5,87 Q52,87 52,85 C51,82 49.7,77 49.5,73 C49.4,70.5 49.9,68.5 49.7,66 C49.4,62 47.5,58 47.5,54 Z"/></g></svg></div>
       <div>
         <h1>Kalisto</h1>
         <p>Séances sans matériel, à ton rythme</p>
