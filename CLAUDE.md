@@ -20,6 +20,14 @@ en français dans ce projet.
   à jour. Une entrée manquante laisse l'utilisateur devant un journal muet.
   Écrire les entrées pour l'utilisateur (ce qui change pour lui), pas pour le
   développeur. Élaguer les plus anciennes quand la liste dépasse ~8 versions.
+- **Puis mettre à jour la page publique partagée aux amis de Karelisio**
+  (artefact `https://claude.ai/artifact/DXywQNCWxR8xCqMBsEZoKr`) : y ajouter
+  la nouvelle entrée en tête et corriger le numéro de version de la puce
+  « Version N » sous le bouton de téléchargement. Karelisio a demandé que ce
+  soit fait à chaque publication, sans attendre qu'il le redemande. Depuis une
+  autre session, republier en passant l'URL ci-dessus en paramètre `url` après
+  avoir lu la version en ligne (`action: "read"`), sinon on crée un doublon et
+  le lien déjà diffusé reste figé.
 - Commits : toujours suivre les lignes d'attribution données par le système
   au moment du commit (elles changent selon le modèle utilisé dans la
   session — ne pas réutiliser une valeur codée en dur d'une session
