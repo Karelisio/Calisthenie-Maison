@@ -187,6 +187,15 @@
   .btn.block{width:100%;}
   .btn.sm{padding:8px 14px;min-height:42px;font-size:12px;border-radius:12px;}
   .btn:disabled{opacity:.4;cursor:not-allowed;}
+  /* Pastille de notification. Placée bien à l'intérieur du bouton : .btn a
+     overflow:hidden et des coins arrondis, un point collé à l'angle serait
+     rogné. */
+  .has-dot::after{
+    content:'';position:absolute;top:7px;right:9px;
+    width:8px;height:8px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 2px var(--card);
+  }
   .icon-btn{
     width:44px;height:44px;border-radius:12px;
     background:linear-gradient(160deg, var(--card2), var(--card));
@@ -861,7 +870,7 @@ function loadSessions(){
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
 function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
 function saveCustomExos(a){ invalidateExoIndex(); try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
-function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, soundProfile:'classic', theme:'system', warmup:true, warmupMode:'short', avoidLunges:false, lastSeenBuild:null}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, soundProfile:'classic', theme:'system', warmup:true, warmupMode:'short', avoidLunges:false, lastSeenBuild:null}; } }
+function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true, soundProfile:'classic', theme:'system', warmup:true, warmupMode:'short', avoidLunges:false, lastSeenBuild:null, updateAvailable:false, updateCheckedAt:0}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true, soundProfile:'classic', theme:'system', warmup:true, warmupMode:'short', avoidLunges:false, lastSeenBuild:null, updateAvailable:false, updateCheckedAt:0}; } }
 function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
 /* Lu avant toute écriture : permet de distinguer une mise à jour (on montre le
    journal des nouveautés) d'une première installation (on ne montre rien, la
@@ -917,6 +926,33 @@ function callNativePlugin(pluginName, method, options){
   return window.Capacitor.nativePromise(pluginName, method, options||{});
 }
 function callAppUpdater(method, options){ return callNativePlugin('AppUpdater', method, options); }
+
+/* Pastille "mise à jour disponible" sur le bouton des réglages.
+   La vérification tourne en arrière-plan au lancement, mais pas plus d'une
+   fois toutes les 6 h : inutile d'interroger GitHub à chaque ouverture de
+   l'app. Le résultat est mémorisé, donc la pastille s'affiche immédiatement
+   au lancement suivant sans attendre le réseau. */
+const UPDATE_CHECK_INTERVAL_MS = 6*60*60*1000;
+function setUpdateBadge(available){
+  const changed = settings.updateAvailable !== available;
+  settings.updateAvailable = available;
+  settings.updateCheckedAt = Date.now();
+  saveSettings(settings);
+  return changed;
+}
+function refreshUpdateBadge(){
+  if(!isNativeApp()) return;
+  if(settings.updateCheckedAt && Date.now() - settings.updateCheckedAt < UPDATE_CHECK_INTERVAL_MS) return;
+  callAppUpdater('checkForUpdate').then(res=>{
+    const changed = setUpdateBadge(!!(res && res.available));
+    // On ne réaffiche que si l'écran d'accueil est tranquille : surtout pas
+    // pendant une séance ou pendant qu'une fiche est ouverte et remplie.
+    if(changed && view === 'home' && !sheet) render();
+  }).catch(()=>{
+    // Hors connexion ou GitHub injoignable : on laisse l'état tel quel
+    // plutôt que d'annoncer à tort qu'il n'y a rien de neuf.
+  });
+}
 function updateErrorText(err, fallback){
   const msg = (err && (err.message || err.errorMessage)) || (typeof err === 'string' ? err : '');
   return msg || fallback;
@@ -966,11 +1002,16 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '13';
+const APP_BUILD = '14';
 /* Journal des nouveautés, du plus récent au plus ancien. À compléter à chaque
    fois qu'on incrémente APP_BUILD : c'est ce que l'app affiche toute seule au
    premier lancement après une mise à jour. */
 const CHANGELOG = [
+  {v:'14', title:'Pastille de mise à jour', items:[
+    "Une pastille orange apparaît sur le bouton « Mise à jour » des réglages dès qu'une nouvelle version est disponible.",
+    "La vérification se fait discrètement en arrière-plan, au maximum une fois toutes les 6 heures.",
+    "Hors connexion, rien ne change : pas de fausse alerte."
+  ]},
   {v:'13', title:'Ce journal', items:[
     "Après chaque mise à jour, l'app affiche d'elle-même ce qui a changé.",
     "Tu peux le rouvrir quand tu veux : bouton « ✨ Nouveautés » dans les réglages."
@@ -1374,7 +1415,7 @@ function renderHome(){
       <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
       <button class="btn sm ghost" data-action="openExport">📤 Export</button>
       <button class="btn sm ghost" data-action="openImport">📥 Import</button>
-      ${isNativeApp() ? `<button class="btn sm ghost" data-update-btn="1">🔄 Mise à jour</button>` : ''}
+      ${isNativeApp() ? `<button class="btn sm ghost${settings.updateAvailable?' has-dot':''}" data-update-btn="1"${settings.updateAvailable?' aria-label="Mise à jour — une nouvelle version est disponible"':''}>🔄 Mise à jour</button>` : ''}
     </div>
   </div>`;
 }
@@ -2423,6 +2464,8 @@ function attachEvents(){
       callAppUpdater('checkForUpdate').then(res=>{
         if(res && res.available){ updateState={status:'available', info:res, error:null}; }
         else{ updateState={status:'upToDate', info:res, error:null}; }
+        // Une vérification manuelle fait foi : elle pose ou retire la pastille.
+        setUpdateBadge(!!(res && res.available));
         render();
       }).catch(err=>{
         updateState={status:'error', info:null, error:(err && err.message) || String(err) || 'Vérification impossible.'};
@@ -2466,7 +2509,7 @@ function attachEvents(){
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
       if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
       if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
-      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,soundProfile:'classic',theme:'system',warmup:true,warmupMode:'short',avoidLunges:false,lastSeenBuild:null}, data.settings); saveSettings(settings); applyTheme(); }
+      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true,soundProfile:'classic',theme:'system',warmup:true,warmupMode:'short',avoidLunges:false,lastSeenBuild:null,updateAvailable:false,updateCheckedAt:0}, data.settings); saveSettings(settings); applyTheme(); }
       if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
       if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
       sheet=null; view='home'; toast('Données importées ✓'); render();
@@ -2622,6 +2665,7 @@ function prepareChangelogNotice(){
 applyTheme();
 prepareChangelogNotice();
 render();
+refreshUpdateBadge();
 })();
 </script>
 <script>
