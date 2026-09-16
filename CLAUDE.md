@@ -13,6 +13,13 @@ en français dans ce projet.
   monofichier (HTML+CSS+JS en IIFE), pas de build JS/bundler. Les autres
   fichiers du repo (android/, .github/workflows/) sont l'emballage Capacitor
   + CI, à ne modifier que si le besoin le justifie explicitement.
+- **À chaque publication : incrémenter `APP_BUILD` ET ajouter l'entrée
+  correspondante en tête de `CHANGELOG`** (tous deux dans `index.html`).
+  Le numéro s'affiche dans les réglages et sert à répondre à « quelle version
+  as-tu ? » ; le journal s'ouvre tout seul au premier lancement après une mise
+  à jour. Une entrée manquante laisse l'utilisateur devant un journal muet.
+  Écrire les entrées pour l'utilisateur (ce qui change pour lui), pas pour le
+  développeur. Élaguer les plus anciennes quand la liste dépasse ~8 versions.
 - Commits : toujours suivre les lignes d'attribution données par le système
   au moment du commit (elles changent selon le modèle utilisé dans la
   session — ne pas réutiliser une valeur codée en dur d'une session
