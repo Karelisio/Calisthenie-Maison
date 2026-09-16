@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Calisthénie Maison Material</string>
-    <string name="title_activity_main">Calisthénie Maison Material</string>
+    <string name="app_name">Kalisto</string>
+    <string name="title_activity_main">Kalisto</string>
     <string name="package_name">com.karelisio.calisthenie.material</string>
     <string name="custom_url_scheme">com.karelisio.calisthenie.material</string>
 </resources>

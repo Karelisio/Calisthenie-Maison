@@ -1,4 +1,4 @@
-# Calisthénie Maison
+# Kalisto
 
 Application Android de musculation au poids du corps (calisthénie), sans matériel obligatoire, avec suivi de séances, minuteur intégré et design Material 3 adaptatif (couleurs Material You selon le fond d'écran).
 

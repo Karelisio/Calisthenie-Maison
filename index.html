@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Calisthénie Maison</title>
+<title>Kalisto</title>
 <meta name="theme-color" content="#12140f">
 <meta name="description" content="Séances de calisthénie sans matériel, avec minuteur intégré.">
 <link rel="manifest" href="manifest.json">
@@ -1002,11 +1002,16 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '14';
+const APP_BUILD = '15';
 /* Journal des nouveautés, du plus récent au plus ancien. À compléter à chaque
    fois qu'on incrémente APP_BUILD : c'est ce que l'app affiche toute seule au
    premier lancement après une mise à jour. */
 const CHANGELOG = [
+  {v:'15', title:'Nouveau nom, nouvelle icône', items:[
+    "L'appli s'appelle désormais Kalisto.",
+    "Nouvelle icône, dessinée pour s'adapter à la couleur de ton fond d'écran (Android 12+) au lieu du carré orange générique d'avant.",
+    "Aucun impact sur tes séances, réglages ou historique : rien n'est perdu dans la mise à jour."
+  ]},
   {v:'14', title:'Pastille de mise à jour', items:[
     "Une pastille orange apparaît sur le bouton « Mise à jour » des réglages dès qu'une nouvelle version est disponible.",
     "La vérification se fait discrètement en arrière-plan, au maximum une fois toutes les 6 heures.",
@@ -1041,11 +1046,6 @@ const CHANGELOG = [
   {v:'8', title:'Appuis longs fiables', items:[
     "Un appui long ne rate plus parce que le doigt a bougé de deux millimètres.",
     "Une courte vibration confirme le déclenchement."
-  ]},
-  {v:'7', title:'Les fondations', items:[
-    "Boutons agrandis : beaucoup moins d'appuis dans le vide.",
-    "Les vibrations fonctionnent.",
-    "Le numéro de version s'affiche dans les réglages."
   ]},
 ];
 
@@ -1360,7 +1360,7 @@ function renderHeader(){
     <div class="brand">
       <div class="logo">🏋️</div>
       <div>
-        <h1>Calisthénie Maison</h1>
+        <h1>Kalisto</h1>
         <p>Séances sans matériel, à ton rythme</p>
       </div>
     </div>

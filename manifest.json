@@ -1,6 +1,6 @@
 {
-  "name": "Calisthénie Maison",
-  "short_name": "Calisthénie",
+  "name": "Kalisto",
+  "short_name": "Kalisto",
   "description": "Séances de calisthénie sans matériel, avec minuteur intégré.",
   "start_url": "./index.html",
   "scope": "./",
