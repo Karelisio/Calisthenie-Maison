@@ -1002,11 +1002,15 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '15';
+const APP_BUILD = '16';
 /* Journal des nouveautés, du plus récent au plus ancien. À compléter à chaque
    fois qu'on incrémente APP_BUILD : c'est ce que l'app affiche toute seule au
    premier lancement après une mise à jour. */
 const CHANGELOG = [
+  {v:'16', title:"Meilleure compatibilité de l'icône thématique", items:[
+    "L'icône du lanceur se laissait mal teinter par certains lanceurs Android (retour à une pastille blanche au lieu de suivre le fond d'écran).",
+    "Corrigé : si les icônes thématiques sont activées dans les réglages de ton téléphone, Kalisto devrait maintenant suivre la même couleur que les autres."
+  ]},
   {v:'15', title:'Nouveau nom, nouvelle icône', items:[
     "L'appli s'appelle désormais Kalisto.",
     "Nouvelle icône, dessinée pour s'adapter à la couleur de ton fond d'écran (Android 12+) au lieu du carré orange générique d'avant.",
