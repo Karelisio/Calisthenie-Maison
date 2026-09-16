@@ -1002,15 +1002,11 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '16';
+const APP_BUILD = '15';
 /* Journal des nouveautés, du plus récent au plus ancien. À compléter à chaque
    fois qu'on incrémente APP_BUILD : c'est ce que l'app affiche toute seule au
    premier lancement après une mise à jour. */
 const CHANGELOG = [
-  {v:'16', title:'Le logo suit maintenant tes couleurs', items:[
-    "Le logo en haut de l'app reprend le dessin de la nouvelle icône, au lieu de l'ancien pictogramme.",
-    "Il suit tes couleurs Material You, comme le reste de l'app."
-  ]},
   {v:'15', title:'Nouveau nom, nouvelle icône', items:[
     "L'appli s'appelle désormais Kalisto.",
     "Nouvelle icône, dessinée pour s'adapter à la couleur de ton fond d'écran (Android 12+) au lieu du carré orange générique d'avant.",
