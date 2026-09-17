@@ -386,6 +386,17 @@ const EXO_LIB = [
    "Alterne les jambes en l'air, réception souple et contrôlée à chaque saut.",
    "Buste droit, gainage actif pour garder l'équilibre.",
    "Impact élevé sur les genoux et chevilles : à réduire en cas de gêne articulaire."]},
+ {id:'pistol_squat_assisted', name:'Pistol Squat assisté', cat:'Bas du corps', icon:'🤝', type:'reps', sets:3, val:6, rest:60, level:'Intermédiaire', muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
+   "Tiens-toi à un support stable (cadre de porte, poteau, dossier de chaise) avec une main pour t'aider à garder l'équilibre.",
+   "Debout sur une jambe, l'autre tendue devant toi, descends en squat aussi bas que possible en gardant le talon au sol.",
+   "Utilise le support seulement pour l'équilibre, pas pour te hisser : laisse tes jambes faire l'essentiel du travail.",
+   "Termine toutes les répétitions d'une jambe avant de changer de côté."]},
+ {id:'pistol_squat', name:'Pistol Squat', cat:'Bas du corps', icon:'🦵', type:'reps', sets:3, val:5, rest:90, level:'Avancé', muscles:['Quadriceps','Fessiers','Ischio-jambiers','Abdominaux'], tips:[
+   "Debout sur une jambe, l'autre tendue devant toi à l'horizontale, bras tendus devant toi pour l'équilibre.",
+   "Descends lentement en squat complet sur la jambe d'appui, sans poser l'autre pied ni perdre l'équilibre.",
+   "Garde le talon de la jambe d'appui au sol tout du long : s'il se décolle, c'est souvent un manque de mobilité de cheville plutôt que de force.",
+   "Exercice très exigeant en force et en mobilité : maîtrise d'abord la version assistée avant de tenter celle-ci.",
+   "Termine toutes les répétitions d'une jambe avant de changer de côté."]},
  {id:'glute_bridge', name:'Pont fessier', cat:'Bas du corps', icon:'🌉', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux pour augmenter l'activation des fessiers moyens en plus des grands fessiers.", muscles:['Fessiers','Ischio-jambiers','Lombaires'], tips:[
    "Allongé, pieds à plat proches des fessiers, pousse en appuyant sur les talons.",
    "Contracte les fessiers en haut du mouvement, sans cambrer excessivement le bas du dos.",
@@ -915,6 +926,8 @@ let libTab = 'exos'; // warmup | exos | stretch
 let libSearch = '';   // filtre de l'onglet Exercices
 let pickSearch = '';  // filtre de la fiche "Choisir un exercice"
 let sheet = null; // {type:'addExo'|'editExo'|'tips'|'equipment', ...}
+let sheetOpenedAt = 0; // pour ignorer le clic fantôme qui ferme un sheet dès son ouverture
+let lastSheetSeen = null;
 let player = null; // player state
 let updateState = { status:'idle', info:null, error:null }; // idle | checking | upToDate | available | downloading | error
 
@@ -1002,11 +1015,15 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '16';
+const APP_BUILD = '17';
 /* Journal des nouveautés, du plus récent au plus ancien. À compléter à chaque
    fois qu'on incrémente APP_BUILD : c'est ce que l'app affiche toute seule au
    premier lancement après une mise à jour. */
 const CHANGELOG = [
+  {v:'17', title:'Pistol squats & popup de mise à jour corrigé', items:[
+    "Deux nouveaux exercices dans « Bas du corps » : Pistol Squat assisté et Pistol Squat.",
+    "Corrigé : le bouton « Mise à jour » des réglages pouvait se fermer tout seul juste après l'avoir ouvert."
+  ]},
   {v:'16', title:"Meilleure compatibilité de l'icône thématique", items:[
     "L'icône du lanceur se laissait mal teinter par certains lanceurs Android (retour à une pastille blanche au lieu de suivre le fond d'écran).",
     "Corrigé : si les icônes thématiques sont activées dans les réglages de ton téléphone, Kalisto devrait maintenant suivre la même couleur que les autres."
@@ -1042,10 +1059,6 @@ const CHANGELOG = [
     "Bouton « Précédent » pendant la séance.",
     "Décompte de 3 s en fermant les conseils, le temps de se remettre en place.",
     "Cinq sonorités de bip au choix : appui long sur le bouton « Son »."
-  ]},
-  {v:'9', title:'Mise à jour intégrée réparée', items:[
-    "Le téléchargement affiche sa progression, peut être annulé, et dit ce qui coince en cas d'échec.",
-    "L'app ne se déclare plus à jour alors qu'elle ne l'est pas."
   ]},
 ];
 
@@ -1304,7 +1317,9 @@ function tickResume(){
     render();
   }
 }
+const SHEET_CLOSE_GUARD_MS = 350; // ignore le clic fantôme qui atterrit sur "Fermer" au tout premier rendu du sheet
 function closeSheet(){
+  if(Date.now() - sheetOpenedAt < SHEET_CLOSE_GUARD_MS) return;
   if(sheet && sheet.type === 'update') stopDownloadWatch();
   const resume = !!(sheet && sheet.resumeOnClose);
   sheet = null;
@@ -1318,6 +1333,8 @@ function render(){
   }
 }
 function renderInner(){
+  if(sheet && sheet !== lastSheetSeen) sheetOpenedAt = Date.now();
+  lastSheetSeen = sheet;
   const app = document.getElementById('app');
   let html = '';
   if(view === 'player' && player){
