@@ -324,6 +324,11 @@ const EXO_LIB = [
    "Mains posées sur un support stable (table, marche, canapé) plus haut que les pieds.",
    "Plus l'appui est haut, plus l'exercice est facile — idéal pour progresser en douceur.",
    "Garde le corps gainé en ligne droite, sans casser les hanches vers le bas."]},
+ {id:'pushup_decline', name:'Pompes pieds surélevés (déclinées)', cat:'Haut du corps – Push', icon:'🔽', type:'reps', sets:3, val:10, rest:90, equip:'chair', muscles:['Pectoraux','Épaules','Triceps'], tips:[
+   "Pieds posés sur un support stable (chaise, banc, marche), mains au sol un peu plus loin que la largeur des épaules.",
+   "Plus l'appui des pieds est haut, plus l'exercice est difficile — reste sur un support bas si besoin.",
+   "Garde le corps gainé en ligne droite, sans casser les hanches vers le bas ni les monter trop haut.",
+   "Utilise une chaise ou un banc stable, qui ne glisse pas et ne bascule pas."]},
  {id:'pike_pushup', name:'Pompes piquées (épaules)', cat:'Haut du corps – Push', icon:'🔺', type:'reps', sets:3, val:8, rest:60, muscles:['Épaules','Triceps','Trapèzes'], tips:[
    "Position en V inversé, hanches hautes, mains et pieds au sol.",
    "Plie les coudes vers l'arrière pour amener le sommet du crâne entre les mains.",
@@ -397,6 +402,12 @@ const EXO_LIB = [
    "Garde le talon de la jambe d'appui au sol tout du long : s'il se décolle, c'est souvent un manque de mobilité de cheville plutôt que de force.",
    "Exercice très exigeant en force et en mobilité : maîtrise d'abord la version assistée avant de tenter celle-ci.",
    "Termine toutes les répétitions d'une jambe avant de changer de côté."]},
+ {id:'step_up_low', name:'Step up bas (chaise ou banc)', cat:'Bas du corps', icon:'🪜', type:'reps', sets:3, val:10, rest:45, equip:'chair', level:'Débutant', muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
+   "Utilise un support bas et stable (chaise basse ou banc bas) — jamais un support si haut que le genou dépasse un angle confortable en haut du mouvement.",
+   "Pose tout le pied à plat sur le support, pousse principalement par le talon pour monter, sans t'aider en poussant sur la jambe au sol.",
+   "Redescends lentement et avec contrôle plutôt qu'en te laissant tomber.",
+   "Termine toutes les répétitions d'une jambe avant de changer de côté.",
+   "Utilise une chaise ou un banc stable, qui ne glisse pas et ne bascule pas."]},
  {id:'glute_bridge', name:'Pont fessier', cat:'Bas du corps', icon:'🌉', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux pour augmenter l'activation des fessiers moyens en plus des grands fessiers.", muscles:['Fessiers','Ischio-jambiers','Lombaires'], tips:[
    "Allongé, pieds à plat proches des fessiers, pousse en appuyant sur les talons.",
    "Contracte les fessiers en haut du mouvement, sans cambrer excessivement le bas du dos.",
@@ -1015,11 +1026,16 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '17';
+const APP_BUILD = '18';
 /* Journal des nouveautés, du plus récent au plus ancien. À compléter à chaque
    fois qu'on incrémente APP_BUILD : c'est ce que l'app affiche toute seule au
    premier lancement après une mise à jour. */
 const CHANGELOG = [
+  {v:'18', title:'Nouveaux exercices & suivi affiné en séance', items:[
+    "Deux nouveaux exercices (nécessitant une chaise) : Pompes déclinées et Step up bas.",
+    "En séance, « Passer » une série te demande maintenant ton nombre de reps max, pour garder une trace précise même sur une série ratée.",
+    "Dans « Créer un exercice personnalisé », les exercices en durée peuvent être marqués « Unilatéral » : une pause avec bip se déclenche automatiquement à la moitié du temps pour changer de côté."
+  ]},
   {v:'17', title:'Pistol squats & popup de mise à jour corrigé', items:[
     "Deux nouveaux exercices dans « Bas du corps » : Pistol Squat assisté et Pistol Squat.",
     "Corrigé : le bouton « Mise à jour » des réglages pouvait se fermer tout seul juste après l'avoir ouvert."
@@ -1050,15 +1066,6 @@ const CHANGELOG = [
   {v:'11', title:"L'écran ne s'éteint plus", items:[
     "Fini l'écran qui s'éteint en plein gainage.",
     "La mise en veille reprend normalement dès que tu quittes la séance."
-  ]},
-  {v:'10', title:'Sept ajouts de confort', items:[
-    "Recherche dans les exercices et au moment d'en ajouter un, par nom ou par muscle.",
-    "La durée annoncée d'une séance inclut enfin l'échauffement et les étirements.",
-    "L'échauffement suit ce que la séance travaille vraiment, au lieu de piocher au hasard.",
-    "Flèches ↑↓ pour réorganiser les séances, et les exercices dans une séance.",
-    "Bouton « Précédent » pendant la séance.",
-    "Décompte de 3 s en fermant les conseils, le temps de se remettre en place.",
-    "Cinq sonorités de bip au choix : appui long sur le bouton « Son »."
   ]},
 ];
 
@@ -1688,6 +1695,12 @@ function renderSheet(){
       <div class="row wrap" style="gap:6px;margin:-4px 0 4px;">
         ${MUSCLE_OPTIONS.map(m=>`<button type="button" class="btn sm ${draftMuscles.includes(m)?'accent':'ghost'}" data-toggle-custom-muscle="${escapeHtml(m)}">${escapeHtml(m)}</button>`).join('')}
       </div>
+      ${sheet.exoType==='time' ? `
+      <label class="field"><span>Mouvement</span></label>
+      <div class="row wrap" style="gap:6px;margin:-4px 0 4px;">
+        <button type="button" class="btn sm ${!sheet.unilateral?'accent':'ghost'}" data-set-custom-unilateral="0">Bilatéral</button>
+        <button type="button" class="btn sm ${sheet.unilateral?'accent':'ghost'}" data-set-custom-unilateral="1">Unilatéral (pause + bip pour changer de côté à la moitié du temps)</button>
+      </div>` : ''}
       <p style="margin-bottom:14px;">Sert à afficher les muscles travaillés de tes séances et à cibler l'échauffement/étirement automatique.</p>
       <div class="row" style="margin-top:14px;">
         <button class="btn ghost block" data-action="closeSheet">Annuler</button>
@@ -1896,7 +1909,17 @@ function startSession(idx){
     restDuration:null,
     beepedAt:{},
     sideBreak:null, // {remaining, endAt, resumeRemaining} pendant la pause "changez de côté"
-    sideSwitchDone:false
+    sideSwitchDone:false,
+    enteringRepCount:false,
+    enteredRepValue:'',
+    // Une entrée par série, pré-remplie avec l'objectif ; disponible dès le
+    // début de la séance pour que "Rep max" (série ratée) puisse y écrire en
+    // direct, pas seulement au bilan de fin.
+    review: session.exos.map(e=>({
+      completed:true,
+      detailed:false,
+      reps: Array.from({length: Math.max(1, e.sets||1)}, ()=>e.val)
+    }))
   };
   view = 'player';
   setKeepAwake(true);
@@ -2034,8 +2057,34 @@ function completeRepsSet(){
 
 function skipCurrent(){
   clearTick();
-  if(player.phase==='work'){ goToRestOrNext(); }
-  else { goToNextStep(); }
+  if(player.phase==='work'){
+    const st = currentStep();
+    if(st.exo.type==='reps'){
+      player.enteringRepCount = true;
+      player.enteredRepValue = '';
+      render();
+      return;
+    }
+    goToRestOrNext();
+  } else { goToNextStep(); }
+}
+
+function cancelRepCount(){
+  player.enteringRepCount = false;
+  player.enteredRepValue = '';
+  render();
+}
+function confirmRepCount(){
+  const st = currentStep();
+  const inp = document.getElementById('liveRepInput');
+  const val = inp ? inp.value : player.enteredRepValue;
+  const n = Math.max(0, parseInt(val)||0);
+  player.review[st.exoIndex].reps[st.setIndex] = n;
+  player.review[st.exoIndex].detailed = true;
+  player.enteringRepCount = false;
+  player.enteredRepValue = '';
+  clearTick();
+  goToRestOrNext();
 }
 
 function advanceAfterCountdown(){
@@ -2057,6 +2106,8 @@ function goToRestOrNext(){
 }
 
 function goToNextStep(){
+  player.enteringRepCount = false;
+  player.enteredRepValue = '';
   player.stepIdx++;
   if(player.stepIdx >= player.steps.length){ finishSession(); return; }
   player.phase='work';
@@ -2073,6 +2124,8 @@ function startWorkPhase(){
 function goToPrevStep(){
   clearTick();
   cancelResumeCountdown();
+  player.enteringRepCount = false;
+  player.enteredRepValue = '';
   if(player.phase === 'rest'){
     player.phase = 'work';
   } else if(player.stepIdx > 0){
@@ -2087,13 +2140,9 @@ function finishSession(){
   player.phase='review';
   player.feeling = null;
   player.note = '';
-  // Une entrée par série, pré-remplie avec l'objectif : valider "comme prévu"
-  // reste un seul appui, le détail ne s'ouvre que si on le demande.
-  player.review = player.session.exos.map(e=>({
-    completed:true,
-    detailed:false,
-    reps: Array.from({length: Math.max(1, e.sets||1)}, ()=>e.val)
-  }));
+  // player.review est déjà initialisé depuis startSession() — et a pu être
+  // complété en direct pendant la séance via "Rep max" sur une série ratée.
+  // On ne le reconstruit surtout pas ici, ça écraserait ces valeurs.
   beep(660,150,0.15); setTimeout(()=>beep(880,150,0.15),160); setTimeout(()=>beep(1100,220,0.18),320);
   vibrate([100,50,100,50,150]);
   render();
@@ -2228,6 +2277,17 @@ function renderPlayer(){
           <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
           ${prevBtn}
           <button class="btn ghost" data-action="skip">⏭ Passer</button>
+        </div>`;
+    } else if(player.enteringRepCount){
+      centerHtml = `<div class="big-emoji">${st.exo.icon}</div>
+        <label class="field" style="margin:10px auto 0;max-width:200px;">
+          <span>Rep max</span>
+          <input type="number" min="0" inputmode="numeric" id="liveRepInput" placeholder="0" value="${escapeHtml(String(player.enteredRepValue))}">
+        </label>`;
+      controlsHtml = `
+        <div class="controls">
+          <button class="btn primary" data-action="confirmRepCount">✓ Valider</button>
+          <button class="btn ghost" data-action="cancelRepCount">Annuler</button>
         </div>`;
     } else {
       centerHtml = `<div class="big-emoji">${st.exo.icon}</div><div class="reps-target">${st.exo.val} <span>reps</span></div>`;
@@ -2453,7 +2513,7 @@ function attachEvents(){
 
   const actionMap = {
     openAddExo: ()=>{ pickSearch=''; sheet={type:'addExo'}; render(); },
-    openCustomExo: ()=>{ sheet={type:'customExo', name:'', exoType:'reps', cat:CUSTOM_CAT_OPTIONS[0], muscles:[]}; render(); },
+    openCustomExo: ()=>{ sheet={type:'customExo', name:'', exoType:'reps', cat:CUSTOM_CAT_OPTIONS[0], muscles:[], unilateral:false}; render(); },
     openChangelog: ()=>{ sheet={type:'changelog', since:null, auto:false}; render(); },
     openEquipment: ()=>{ sheet={type:'equipment'}; render(); },
     openExport: ()=>{ sheet={type:'export'}; render(); },
@@ -2554,6 +2614,7 @@ function attachEvents(){
       const id = 'custom_'+Date.now();
       const entry = {id, name, cat, type, icon:'⭐', sets:3, val: type==='time'?30:12, rest:45, custom:true};
       if(muscles.length) entry.muscles = muscles;
+      if(type==='time' && sheet.unilateral) entry.sides = true;
       customExos.push(entry);
       saveCustomExos(customExos);
       sheet=null; toast('Exercice créé ✓'); render();
@@ -2566,6 +2627,8 @@ function attachEvents(){
     prev: goToPrevStep,
     skipSideBreak: skipSideBreak,
     completeReps: completeRepsSet,
+    confirmRepCount: confirmRepCount,
+    cancelRepCount: cancelRepCount,
     restMinus: ()=>adjustRest(-15),
     restPlus: ()=>adjustRest(15),
     saveReview: saveReview,
@@ -2614,6 +2677,26 @@ function attachEvents(){
     render();
   });
 
+  app.querySelectorAll('[data-set-custom-unilateral]').forEach(b=>b.onclick = ()=>{
+    const nameEl = document.getElementById('customName');
+    const typeEl = document.getElementById('customType');
+    const catEl = document.getElementById('customCat');
+    if(nameEl) sheet.name = nameEl.value;
+    if(typeEl) sheet.exoType = typeEl.value;
+    if(catEl) sheet.cat = catEl.value;
+    sheet.unilateral = b.getAttribute('data-set-custom-unilateral')==='1';
+    render();
+  });
+  const customTypeEl = document.getElementById('customType');
+  if(customTypeEl) customTypeEl.onchange = ()=>{
+    const nameEl = document.getElementById('customName');
+    const catEl = document.getElementById('customCat');
+    if(nameEl) sheet.name = nameEl.value;
+    if(catEl) sheet.cat = catEl.value;
+    sheet.exoType = customTypeEl.value;
+    render();
+  };
+
   app.querySelectorAll('[data-toggle-equip]').forEach(b=>b.onclick = ()=>{
     const key = b.getAttribute('data-toggle-equip');
     equipment[key] = !equipment[key];
@@ -2637,6 +2720,8 @@ function attachEvents(){
     const si = parseInt(inp.getAttribute('data-set'));
     player.review[i].reps[si] = inp.value;
   });
+  const liveRepEl = document.getElementById('liveRepInput');
+  if(liveRepEl) liveRepEl.oninput = ()=>{ player.enteredRepValue = liveRepEl.value; };
   app.querySelectorAll('[data-feeling]').forEach(b=>b.onclick = ()=>{
     const v = b.getAttribute('data-feeling');
     player.feeling = player.feeling===v ? null : v;
@@ -2654,7 +2739,7 @@ function attachEvents(){
   app.querySelectorAll('[data-pick-exo]').forEach(b=>b.onclick = ()=>{
     const id = b.getAttribute('data-pick-exo');
     const e = allExoLibrary().find(x=>x.id===id);
-    builderDraft.exos.push({libId:e.id, name:e.name, icon:e.icon, type:e.type, sets:e.sets, val:e.val, rest:e.rest});
+    builderDraft.exos.push({libId:e.id, name:e.name, icon:e.icon, type:e.type, sets:e.sets, val:e.val, rest:e.rest, sides:!!e.sides});
     sheet=null; render();
   });
   app.querySelectorAll('[data-del-custom]').forEach(b=>b.onclick = (ev)=>{
