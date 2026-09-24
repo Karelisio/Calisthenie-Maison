@@ -391,18 +391,18 @@ const EXO_LIB = [
    "Alterne les jambes en l'air, réception souple et contrôlée à chaque saut.",
    "Buste droit, gainage actif pour garder l'équilibre.",
    "Impact élevé sur les genoux et chevilles : à réduire en cas de gêne articulaire."]},
- {id:'pistol_squat_assisted', name:'Pistol Squat assisté', cat:'Bas du corps', icon:'🤝', type:'reps', sets:3, val:6, rest:60, level:'Intermédiaire', muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
+ {id:'pistol_squat_assisted', name:'Pistol Squat assisté', cat:'Bas du corps', icon:'🤝', type:'reps', sets:3, val:6, rest:60, sides:true, level:'Intermédiaire', muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
    "Tiens-toi à un support stable (cadre de porte, poteau, dossier de chaise) avec une main pour t'aider à garder l'équilibre.",
    "Debout sur une jambe, l'autre tendue devant toi, descends en squat aussi bas que possible en gardant le talon au sol.",
    "Utilise le support seulement pour l'équilibre, pas pour te hisser : laisse tes jambes faire l'essentiel du travail.",
    "Termine toutes les répétitions d'une jambe avant de changer de côté."]},
- {id:'pistol_squat', name:'Pistol Squat', cat:'Bas du corps', icon:'🦵', type:'reps', sets:3, val:5, rest:90, level:'Avancé', muscles:['Quadriceps','Fessiers','Ischio-jambiers','Abdominaux'], tips:[
+ {id:'pistol_squat', name:'Pistol Squat', cat:'Bas du corps', icon:'🦵', type:'reps', sets:3, val:5, rest:90, sides:true, level:'Avancé', muscles:['Quadriceps','Fessiers','Ischio-jambiers','Abdominaux'], tips:[
    "Debout sur une jambe, l'autre tendue devant toi à l'horizontale, bras tendus devant toi pour l'équilibre.",
    "Descends lentement en squat complet sur la jambe d'appui, sans poser l'autre pied ni perdre l'équilibre.",
    "Garde le talon de la jambe d'appui au sol tout du long : s'il se décolle, c'est souvent un manque de mobilité de cheville plutôt que de force.",
    "Exercice très exigeant en force et en mobilité : maîtrise d'abord la version assistée avant de tenter celle-ci.",
    "Termine toutes les répétitions d'une jambe avant de changer de côté."]},
- {id:'step_up_low', name:'Step up bas (chaise ou banc)', cat:'Bas du corps', icon:'🪜', type:'reps', sets:3, val:10, rest:45, equip:'chair', level:'Débutant', muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
+ {id:'step_up_low', name:'Step up bas (chaise ou banc)', cat:'Bas du corps', icon:'🪜', type:'reps', sets:3, val:10, rest:45, equip:'chair', sides:true, level:'Débutant', muscles:['Quadriceps','Fessiers','Ischio-jambiers'], tips:[
    "Utilise un support bas et stable (chaise basse ou banc bas) — jamais un support si haut que le genou dépasse un angle confortable en haut du mouvement.",
    "Pose tout le pied à plat sur le support, pousse principalement par le talon pour monter, sans t'aider en poussant sur la jambe au sol.",
    "Redescends lentement et avec contrôle plutôt qu'en te laissant tomber.",
@@ -425,23 +425,26 @@ const EXO_LIB = [
    "Dos entièrement plaqué contre un mur, cuisses parallèles au sol.",
    "Genoux alignés avec les chevilles, jamais au-delà des orteils.",
    "Respire normalement tout au long de la position, ne bloque pas ta respiration."]},
- {id:'hip_abduction', name:'Abduction hanche', cat:'Bas du corps', icon:'🦩', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Ajoute l'élastique au-dessus des genoux ou autour des chevilles pour plus de résistance sur tout le mouvement.", muscles:['Fessiers (moyen)','Hanches'], tips:[
+ {id:'hip_abduction', name:'Abduction hanche', cat:'Bas du corps', icon:'🦩', type:'reps', sets:3, val:15, rest:30, sides:true, level:'Débutant', bandTip:"Ajoute l'élastique au-dessus des genoux ou autour des chevilles pour plus de résistance sur tout le mouvement.", muscles:['Fessiers (moyen)','Hanches'], tips:[
    "Allongé sur le côté, jambes tendues et légèrement avancées devant le buste pour plus de stabilité.",
    "Lève la jambe du dessus vers le plafond sans faire rouler le bassin vers l'arrière.",
-   "Redescends lentement sans reposer complètement la jambe, garde le tronc gainé."]},
+   "Redescends lentement sans reposer complètement la jambe, garde le tronc gainé.",
+   "Termine toutes les répétitions d'un côté avant de changer de côté."]},
  {id:'frog_pump', name:'Frog Pump', cat:'Bas du corps', icon:'🐸', type:'reps', sets:3, val:20, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des genoux pour intensifier la contraction fessière en haut du mouvement.", muscles:['Fessiers'], tips:[
    "Allongé sur le dos, plantes de pieds jointes, genoux ouverts vers l'extérieur.",
    "Pousse le bassin vers le plafond en contractant fort les fessiers, sans forcer sur le bas du dos.",
    "Amplitude courte et contrôlée : la contraction compte plus que la hauteur."]},
- {id:'standing_kickback', name:'Kick Back debout', cat:'Bas du corps', icon:'🍑', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des chevilles pour une résistance constante sur toute l'amplitude du mouvement.", muscles:['Fessiers'], tips:[
+ {id:'standing_kickback', name:'Kick Back debout', cat:'Bas du corps', icon:'🍑', type:'reps', sets:3, val:15, rest:30, sides:true, level:'Débutant', bandTip:"Place l'élastique juste au-dessus des chevilles pour une résistance constante sur toute l'amplitude du mouvement.", muscles:['Fessiers'], tips:[
    "Debout, mains posées sur un support stable (chaise, mur) pour l'équilibre, jambe d'appui légèrement fléchie.",
    "Pousse une jambe tendue vers l'arrière en contractant le fessier, sans te pencher en avant ni cambrer le bas du dos.",
-   "Redescends lentement sans reposer le pied au sol entre les répétitions, garde le bassin stable et gainé."]},
- {id:'standing_abduction', name:'Abduction debout', cat:'Bas du corps', icon:'➡️', type:'reps', sets:3, val:15, rest:30, level:'Débutant', bandTip:"Place l'élastique au-dessus des genoux ou des chevilles pour renforcer le travail des fessiers moyens.", muscles:['Fessiers (moyen)','Hanches'], tips:[
+   "Redescends lentement sans reposer le pied au sol entre les répétitions, garde le bassin stable et gainé.",
+   "Termine toutes les répétitions d'un côté avant de changer de côté."]},
+ {id:'standing_abduction', name:'Abduction debout', cat:'Bas du corps', icon:'➡️', type:'reps', sets:3, val:15, rest:30, sides:true, level:'Débutant', bandTip:"Place l'élastique au-dessus des genoux ou des chevilles pour renforcer le travail des fessiers moyens.", muscles:['Fessiers (moyen)','Hanches'], tips:[
    "Debout, appui sur un support stable, jambe d'appui légèrement fléchie, buste droit.",
    "Lève l'autre jambe tendue sur le côté sans faire basculer le bassin ni te pencher du côté opposé.",
-   "Redescends lentement sans reposer le pied, garde les hanches face à l'avant tout du long."]},
- {id:'standing_combo', name:'Kick Back + Abduction debout', cat:'Bas du corps', icon:'🔀', type:'reps', sets:3, val:12, rest:30, level:'Intermédiaire', bandTip:"Un seul élastique aux chevilles suffit pour intensifier les deux mouvements de l'enchaînement.", muscles:['Fessiers','Hanches'], tips:[
+   "Redescends lentement sans reposer le pied, garde les hanches face à l'avant tout du long.",
+   "Termine toutes les répétitions d'un côté avant de changer de côté."]},
+ {id:'standing_combo', name:'Kick Back + Abduction debout', cat:'Bas du corps', icon:'🔀', type:'reps', sets:3, val:12, rest:30, sides:true, level:'Intermédiaire', bandTip:"Un seul élastique aux chevilles suffit pour intensifier les deux mouvements de l'enchaînement.", muscles:['Fessiers','Hanches'], tips:[
    "Sur une même jambe : pousse-la tendue vers l'arrière (kick back) puis ramène-la sur le côté (abduction), sans reposer le pied entre les deux.",
    "Garde le bassin stable et gainé pendant tout l'enchaînement, sans te pencher d'un côté ni cambrer le dos.",
    "Termine toutes les répétitions d'un côté avant de changer de jambe, mouvement lent pour bien isoler le fessier plutôt que d'aller vite."]},
@@ -449,7 +452,7 @@ const EXO_LIB = [
    "Avant-bras et pointes de pieds au sol, corps aligné de la tête aux talons.",
    "Gainage abdominal et fessiers actifs : les hanches ne doivent ni tomber ni trop monter.",
    "Nuque relâchée, regard légèrement devant toi plutôt que vers le bas."]},
- {id:'side_plank', name:'Gainage latéral', cat:'Abdos / Core', icon:'↔️', type:'time', sets:2, val:30, rest:30, muscles:['Obliques','Épaules'], tips:[
+ {id:'side_plank', name:'Gainage latéral', cat:'Abdos / Core', icon:'↔️', type:'time', sets:2, val:30, rest:30, sides:true, muscles:['Obliques','Épaules'], tips:[
    "Appui sur un avant-bras, corps en ligne droite de la tête aux pieds.",
    "Hanches hautes et stables, ne les laisse pas s'affaisser vers le sol.",
    "Empile les pieds ou décale légèrement le pied du dessus pour l'équilibre."]},
@@ -593,7 +596,7 @@ const WARMUP_LIB = [
     "Debout, penche-toi, pose les mains au sol et avance-les jusqu'en planche.",
     "Reviens en marchant avec les mains vers les pieds, jambes presque tendues.",
     "Mobilise la chaîne arrière et prépare les épaules à supporter ton poids."]},
-  {id:'w_worlds_greatest', name:'Fente + rotation (world\'s greatest)', icon:'🌍', cat:'mobilise', val:40, lunge:true, muscles:['Fléchisseurs de hanche','Hanches','Obliques','Ischio-jambiers'], tips:[
+  {id:'w_worlds_greatest', name:'Fente + rotation (world\'s greatest)', icon:'🌍', cat:'mobilise', val:40, lunge:true, sides:true, muscles:['Fléchisseurs de hanche','Hanches','Obliques','Ischio-jambiers'], tips:[
     "Grande fente avant, main intérieure au sol, puis ouvre le buste bras vers le ciel.",
     "Marque une pause en position ouverte avant de changer de côté.",
     "Un seul mouvement qui mobilise hanches, colonne et épaules — le plus rentable."]},
@@ -662,10 +665,11 @@ const STRETCH_CATS = {
 };
 const STRETCH_LIB = [
   /* --- Haut du corps --- */
-  {id:'s_chest', name:'Étirement pectoraux (au mur)', icon:'🤸', cat:'upper', val:30, muscles:['Pectoraux'], tips:[
+  {id:'s_chest', name:'Étirement pectoraux (au mur)', icon:'🤸', cat:'upper', val:30, sides:true, muscles:['Pectoraux'], tips:[
     "Avant-bras contre un mur ou un chambranle, coude à hauteur d'épaule.",
     "Tourne doucement le buste à l'opposé jusqu'à sentir l'étirement.",
-    "Si ça tire dans l'avant de l'épaule plutôt que dans le pectoral, baisse le coude."]},
+    "Si ça tire dans l'avant de l'épaule plutôt que dans le pectoral, baisse le coude.",
+    "Change de bras à mi-temps."]},
   {id:'s_rear_delt', name:'Étirement épaule (bras croisé)', icon:'🙆', cat:'upper', val:30, sides:true, muscles:['Épaules'], tips:[
     "Amène un bras tendu en travers de la poitrine, l'autre main le maintient.",
     "Garde l'épaule étirée basse, ne la laisse pas remonter vers l'oreille.",
@@ -674,10 +678,11 @@ const STRETCH_LIB = [
     "Coude plié derrière la tête, l'autre main pousse doucement le coude vers le bas.",
     "Garde les côtes basses : évite de cambrer pour gagner de l'amplitude.",
     "Change de bras à mi-temps."]},
-  {id:'s_biceps', name:'Étirement biceps', icon:'🙌', cat:'upper', val:30, muscles:['Biceps'], tips:[
+  {id:'s_biceps', name:'Étirement biceps', icon:'🙌', cat:'upper', val:30, sides:true, muscles:['Biceps'], tips:[
     "Bras tendu derrière toi, paume vers l'arrière, main appuyée sur un mur.",
     "Tourne légèrement le buste à l'opposé du bras étiré.",
-    "Reste dans une sensation d'étirement franche mais confortable."]},
+    "Reste dans une sensation d'étirement franche mais confortable.",
+    "Change de bras à mi-temps."]},
   {id:'s_forearm_flex', name:'Étirement avant-bras (fléchisseurs)', icon:'✋', cat:'upper', val:25, sides:true, muscles:['Avant-bras'], tips:[
     "Bras tendu devant toi paume vers le haut, tire les doigts vers le bas.",
     "Coude bien tendu pour que l'étirement atteigne tout l'avant-bras.",
@@ -690,10 +695,11 @@ const STRETCH_LIB = [
     "Mains en appui haut (mur, table), recule les hanches en laissant le buste descendre.",
     "Cherche l'étirement sur le côté du dos, sous l'aisselle.",
     "Respire profondément : chaque expiration laisse descendre un peu plus."]},
-  {id:'s_traps', name:'Étirement trapèzes / nuque', icon:'🧎', cat:'upper', val:25, muscles:['Trapèzes'], tips:[
+  {id:'s_traps', name:'Étirement trapèzes / nuque', icon:'🧎', cat:'upper', val:25, sides:true, muscles:['Trapèzes'], tips:[
     "Incline la tête sur le côté, main opposée qui tire doucement vers le bas.",
     "L'épaule opposée reste basse, sans remonter.",
-    "Mouvement très doux : la nuque ne supporte pas la force."]},
+    "Mouvement très doux : la nuque ne supporte pas la force.",
+    "Change de côté à mi-temps."]},
 
   /* --- Tronc & dos --- */
   {id:'s_abs', name:'Étirement abdominaux (cobra)', icon:'🐍', cat:'trunk', val:30, muscles:['Abdominaux'], tips:[
@@ -1026,11 +1032,16 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '18';
+const APP_BUILD = '19';
 /* Journal des nouveautés, du plus récent au plus ancien. À compléter à chaque
    fois qu'on incrémente APP_BUILD : c'est ce que l'app affiche toute seule au
    premier lancement après une mise à jour. */
 const CHANGELOG = [
+  {v:'19', title:'Vrai changement de côté & conseils mieux placés', items:[
+    "Pour les exercices en répétitions où on travaille un côté à la fois (Pistol Squat, Step up, Kick Back debout…), une pause « Changez de côté » s'impose désormais entre les deux moitiés de la série, comme pour les exercices chronométrés.",
+    "Le bouton « Conseils & sécurité » montre les conseils du prochain exercice pendant le repos, pour t'y préparer — il reste sur l'exercice en cours pendant l'effort.",
+    "Plusieurs exercices d'échauffement et d'étirement unilatéraux (pectoraux, biceps, trapèzes…) déclenchent maintenant correctement leur pause de changement de côté."
+  ]},
   {v:'18', title:'Nouveaux exercices & suivi affiné en séance', items:[
     "Deux nouveaux exercices (nécessitant une chaise) : Pompes déclinées et Step up bas.",
     "En séance, « Passer » une série te demande maintenant ton nombre de reps max, pour garder une trace précise même sur une série ratée.",
@@ -1062,10 +1073,6 @@ const CHANGELOG = [
     "Le bilan de fin de séance retient chaque série séparément (20 / 15 / 10) au lieu d'un seul chiffre pour l'ensemble.",
     "« Comme prévu » reste un seul appui : le détail ne s'ouvre que si tu le demandes.",
     "Les séances déjà enregistrées restent lisibles telles quelles."
-  ]},
-  {v:'11', title:"L'écran ne s'éteint plus", items:[
-    "Fini l'écran qui s'éteint en plein gainage.",
-    "La mise en veille reprend normalement dès que tu quittes la séance."
   ]},
 ];
 
@@ -1912,6 +1919,8 @@ function startSession(idx){
     sideSwitchDone:false,
     enteringRepCount:false,
     enteredRepValue:'',
+    sideHalf: (steps[0].exo.type==='reps' && steps[0].exo.sides) ? 1 : null, // 1 | 2 | null
+    awaitingSideSwitch:false, // pause "changez de côté" entre les deux moitiés d'une série de reps
     // Une entrée par série, pré-remplie avec l'objectif ; disponible dès le
     // début de la séance pour que "Rep max" (série ratée) puisse y écrire en
     // direct, pas seulement au bilan de fin.
@@ -2050,6 +2059,13 @@ function adjustRest(delta){
 
 function completeRepsSet(){
   clearTick();
+  const st = currentStep();
+  if(st.exo.type==='reps' && st.exo.sides && player.sideHalf===1){
+    beep(700,150,0.15); vibrate([50,40,50]);
+    player.awaitingSideSwitch = true;
+    render();
+    return;
+  }
   beep(1200,220,0.18);
   vibrate(80);
   goToRestOrNext();
@@ -2084,7 +2100,19 @@ function confirmRepCount(){
   player.enteringRepCount = false;
   player.enteredRepValue = '';
   clearTick();
+  if(st.exo.sides && player.sideHalf===1){
+    beep(700,150,0.15); vibrate([50,40,50]);
+    player.awaitingSideSwitch = true;
+    render();
+    return;
+  }
   goToRestOrNext();
+}
+
+function confirmSideSwitch(){
+  player.awaitingSideSwitch = false;
+  player.sideHalf = 2;
+  render();
 }
 
 function advanceAfterCountdown(){
@@ -2116,16 +2144,26 @@ function goToNextStep(){
 /* Remet la phase de travail à zéro pour l'étape courante. */
 function startWorkPhase(){
   const st = currentStep();
+  player.sideHalf = (st.exo.type==='reps' && st.exo.sides) ? 1 : null;
+  player.awaitingSideSwitch = false;
   if(st.exo.type==='time'){ startCountdown(st.exo.val); }
   else { player.remaining=null; player.running=false; clearTick(); render(); }
 }
 /* Revenir en arrière : depuis un repos on repart sur l'exercice qu'on vient de
-   faire, sinon on remonte à l'étape précédente. */
+   faire, sinon on remonte à l'étape précédente. Si on est sur le 2e côté (ou
+   dans la pause "changez de côté") d'une série reps unilatérale, on revient
+   d'abord au 1er côté de cette même série plutôt que de sauter en arrière. */
 function goToPrevStep(){
   clearTick();
   cancelResumeCountdown();
   player.enteringRepCount = false;
   player.enteredRepValue = '';
+  if(player.phase==='work' && (player.sideHalf===2 || player.awaitingSideSwitch)){
+    player.sideHalf = 1;
+    player.awaitingSideSwitch = false;
+    render();
+    return;
+  }
   if(player.phase === 'rest'){
     player.phase = 'work';
   } else if(player.stepIdx > 0){
@@ -2247,6 +2285,9 @@ function renderPlayer(){
       nextLabel = `Dernière ligne droite ✨`;
     }
   }
+  // Au repos, les conseils montrent le prochain exercice (pour s'y préparer) ;
+  // en plein effort, ils restent sur celui en cours (pour s'y référer).
+  const tipsExo = (player.phase==='rest' && nextStep) ? nextStep.exo : st.exo;
 
   let centerHtml = '';
   let controlsHtml = '';
@@ -2263,7 +2304,13 @@ function renderPlayer(){
         <button class="btn primary" data-action="resumeNow">▶ Reprendre maintenant</button>
       </div>`;
   } else if(player.phase==='work'){
-    if(player.sideBreak){
+    if(player.awaitingSideSwitch){
+      centerHtml = `<div class="big-emoji">🔁</div><div class="side-switch-label">Changez de côté</div>`;
+      controlsHtml = `
+        <div class="controls">
+          <button class="btn primary" data-action="confirmSideSwitch">⏭ Reprendre</button>
+        </div>`;
+    } else if(player.sideBreak){
       centerHtml = `<div class="big-emoji">🔁</div><div class="timer glow-rest">${formatTime(player.sideBreak.remaining)}</div><div class="side-switch-label">Changez de côté</div>`;
       controlsHtml = `
         <div class="controls">
@@ -2324,7 +2371,9 @@ function renderPlayer(){
     <span class="phase-tag ${player.phase}">${phaseLabel(st)}</span>
     <div class="exo-name">${escapeHtml(st.exo.name)}</div>
     ${st.exo.meta ? '' : `<div class="set-count">Série ${st.setIndex+1} / ${st.exo.sets}</div>`}
-    ${st.exo.libId || st.exo.srcId ? `<button class="tips-btn" data-tips="${st.exo.libId || st.exo.srcId}">💡 Conseils &amp; sécurité</button>` : ''}
+    ${(st.exo.type==='reps' && st.exo.sides && player.phase==='work' && !player.awaitingSideSwitch)
+      ? `<div class="side-switch-label" style="margin:2px 0 0;">${player.sideHalf===2?'2e côté':'1er côté'}</div>` : ''}
+    ${tipsExo.libId || tipsExo.srcId ? `<button class="tips-btn" data-tips="${tipsExo.libId || tipsExo.srcId}">💡 Conseils &amp; sécurité</button>` : ''}
     ${centerHtml}
     ${controlsHtml}
     ${nextLabel? `<div class="next-preview">${nextLabel}</div>` : ''}
@@ -2626,6 +2675,7 @@ function attachEvents(){
     skip: skipCurrent,
     prev: goToPrevStep,
     skipSideBreak: skipSideBreak,
+    confirmSideSwitch: confirmSideSwitch,
     completeReps: completeRepsSet,
     confirmRepCount: confirmRepCount,
     cancelRepCount: cancelRepCount,
