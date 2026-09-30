@@ -1,0 +1,54 @@
+# Turns the commit red when a change (typically index.html sent through
+# "Add files via upload") drops what makes the app installable and usable
+# offline: the manifest link, the theme-color, the service worker
+# registration, or manifest.json / sw.js themselves.
+name: Garde PWA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pwa-guard:
+    name: Installation et hors ligne
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier index.html, manifest.json et sw.js
+        run: |
+          errors=0
+          fail() {
+            echo "::error file=$1::$2"
+            errors=$((errors + 1))
+          }
+
+          if [ ! -f manifest.json ]; then
+            fail manifest.json "manifest.json a disparu : l'app ne peut plus être installée. Remets ce fichier à la racine du dépôt."
+          elif ! python3 -m json.tool manifest.json > /dev/null 2>&1; then
+            fail manifest.json "manifest.json n'est plus un JSON valide : l'app ne peut plus être installée."
+          fi
+          if [ ! -f sw.js ]; then
+            fail sw.js "sw.js a disparu : l'app ne marche plus hors ligne. Remets ce fichier à la racine du dépôt."
+          fi
+          if [ ! -f index.html ]; then
+            fail index.html "index.html a disparu."
+          else
+            grep -Eq "rel=[\"']?manifest" index.html \
+              || fail index.html "index.html ne contient plus <link rel=\"manifest\" href=\"manifest.json\"> dans <head> : l'app ne peut plus être installée."
+            grep -q "serviceWorker.register" index.html \
+              || fail index.html "index.html n'enregistre plus le service worker (navigator.serviceWorker.register('sw.js'), en bas du fichier) : l'app ne marche plus hors ligne."
+            grep -Eq "name=[\"']?theme-color" index.html \
+              || fail index.html "index.html ne contient plus <meta name=\"theme-color\" content=\"#0f1115\"> dans <head>."
+          fi
+
+          if [ "$errors" -gt 0 ]; then
+            echo "$errors problème(s). Un envoi par l'interface web a sans doute remplacé index.html par une ancienne version ou retiré un fichier : corrige les points ci-dessus (la version précédente est dans l'historique du dépôt)."
+            exit 1
+          fi
+          echo "OK : manifest.json, sw.js, lien du manifest, theme-color et enregistrement du service worker présents."
