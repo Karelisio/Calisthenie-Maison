@@ -447,7 +447,11 @@ function cleanSession(s, strict){
   if(strict && s.exos.length>100) fail('plus de 100 exercices');
   const exos = cleanList(s.exos, cleanExo, strict, 'exercice');
   if(!exos.length) fail('aucun exercice');
-  return {id:cleanText(s.id, 100), name:cleanText(s.name, 200) || 'Séance sans nom', exos};
+  const out = {id:cleanText(s.id, 100), name:cleanText(s.name, 200) || 'Séance sans nom'};
+  // Rest between exercises of the first versions, unused since: kept, not lost.
+  if(typeof s.restBetween==='number' && Number.isFinite(s.restBetween)) out.restBetween = s.restBetween;
+  out.exos = exos;
+  return out;
 }
 function cleanCustomExo(e){
   const x = cleanExo(e);
