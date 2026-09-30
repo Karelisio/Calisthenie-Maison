@@ -1559,7 +1559,9 @@ function attachEvents(){
   app.querySelectorAll('[data-del-custom]').forEach(b=>b.onclick = (ev)=>{
     ev.stopPropagation();
     const id = b.getAttribute('data-del-custom');
-    customExos = customExos.filter(x=>x.id!==id);
+    const exo = customExos.find(x=>x.id===id);
+    if(!exo || !confirm('Supprimer l\'exercice "'+exo.name+'" ? Les séances qui l\'utilisent le gardent.')) return;
+    customExos = customExos.filter(x=>x!==exo);
     saveCustomExos(customExos); render();
   });
 
