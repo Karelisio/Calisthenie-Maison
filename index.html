@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1115">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Calisthénie Maison</title>
 <style>
   :root{
@@ -97,6 +100,7 @@
   .btn.block{width:100%;}
   .btn.sm{padding:8px 10px;font-size:12px;border-radius:10px;}
   .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn:focus-visible, .icon-btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
   .icon-btn{
     width:38px;height:38px;border-radius:10px;background:linear-gradient(160deg, var(--card2), var(--card));border:1px solid var(--border);
     color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;
@@ -1284,6 +1288,11 @@ function attachEvents(){
 
 render();
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
 </script>
 </body>
 </html>
