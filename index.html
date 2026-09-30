@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f1115">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-maskable-192.png">
 <title>Calisthénie Maison</title>
 <style>
   :root{
@@ -100,7 +100,7 @@
   .btn.block{width:100%;}
   .btn.sm{padding:8px 10px;font-size:12px;border-radius:10px;}
   .btn:disabled{opacity:.4;cursor:not-allowed;}
-  .btn:focus-visible, .icon-btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
   .icon-btn{
     width:38px;height:38px;border-radius:10px;background:linear-gradient(160deg, var(--card2), var(--card));border:1px solid var(--border);
     color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;
@@ -176,6 +176,13 @@
   .lib-item .emoji{font-size:22px;width:32px;text-align:center;}
   .lib-item b{font-size:14px;display:block;}
   .lib-item small{color:var(--muted);}
+  button.lib-item{width:100%;background:none;border:0;color:inherit;font:inherit;text-align:left;}
+  .card.lib-card{display:flex;align-items:center;padding:0;}
+  .lib-card .lib-item{flex:1;width:auto;min-width:0;padding:12px 14px;border-radius:0;}
+  .lib-card .lib-item:not(:last-child){padding-right:12px;}
+  .lib-card .lib-item:focus-visible{outline-offset:-2px;}
+  .lib-card .icon-btn{flex-shrink:0;margin-right:14px;}
+  .sheet:focus{outline:none;}
 
   .tips-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;}
   .tips-list li{padding-left:24px;position:relative;font-size:14px;line-height:1.55;color:var(--text);}
@@ -185,7 +192,7 @@
 </head>
 <body>
 <div id="app"></div>
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
 (function(){
@@ -388,33 +395,165 @@ function defaultSessions(){
   ];
 }
 
+/* ---------------- VALIDATION ---------------- */
+// Everything read from localStorage or pasted in « Importer » goes through the
+// cleaners below. At load (lenient) an entry the app cannot display (a null
+// left by an old bug, a session without exercises...) is dropped instead of
+// breaking every render; an import (strict) is refused as a whole, naming the
+// first bad entry. Numbers are bounded, texts shortened, and every session
+// gets a unique id (sessions are referenced by id, never by their position).
+const MAX_SETS = 99, MAX_VAL = 9999, MAX_REST = 3600;
+const DEFAULT_SETTINGS = {sound:true, vibrate:true};
+const DEFAULT_EQUIPMENT = {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false};
+function uid(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function isObj(v){ return !!v && typeof v==='object' && !Array.isArray(v); }
+function fail(msg){ throw new Error(msg); }
+function cleanText(v, max){ return (typeof v==='string' || typeof v==='number') ? String(v).trim().slice(0, max) : ''; }
+function cleanInt(v, def, min, max){
+  const n = typeof v==='number' ? v : (typeof v==='string' && v.trim()!=='' ? Number(v) : NaN);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : def;
+}
+function cleanIcon(v){ const s = typeof v==='string' ? v.trim() : ''; return s && s.length<=16 ? s : '⭐'; }
+function cleanTexts(v, maxItems, maxLen){ return Array.isArray(v) ? v.map(x=>cleanText(x, maxLen)).filter(Boolean).slice(0, maxItems) : []; }
+function cleanFlags(v, defaults){
+  const out = {};
+  Object.keys(defaults).forEach(k=>{ out[k] = isObj(v) && typeof v[k]==='boolean' ? v[k] : defaults[k]; });
+  return out;
+}
+function cleanList(arr, fn, strict, label){
+  const out = [];
+  (Array.isArray(arr) ? arr : []).forEach((x,i)=>{
+    try{ out.push(fn(x, strict)); }
+    catch(e){ if(strict) fail(label+' n°'+(i+1)+' : '+e.message); }
+  });
+  return out;
+}
+function uniqueIds(list, prefix, taken){
+  const seen = new Set(taken);
+  list.forEach(x=>{ if(!x.id || seen.has(x.id)) x.id = uid(prefix); seen.add(x.id); });
+  return list;
+}
+function cleanExo(e){
+  if(!isObj(e)) fail('format illisible');
+  const name = cleanText(e.name, 200);
+  if(!name) fail('nom manquant');
+  const type = e.type==='time' ? 'time' : 'reps';
+  return {libId:cleanText(e.libId, 100), name, icon:cleanIcon(e.icon), type,
+    sets:cleanInt(e.sets, 3, 1, MAX_SETS), val:cleanInt(e.val, type==='time'?30:12, 1, MAX_VAL), rest:cleanInt(e.rest, 45, 0, MAX_REST)};
+}
+function cleanSession(s, strict){
+  if(!isObj(s)) fail('format illisible');
+  if(!Array.isArray(s.exos)) fail("liste d'exercices manquante");
+  if(strict && s.exos.length>200) fail('plus de 200 exercices');
+  const exos = cleanList(s.exos, cleanExo, strict, 'exercice');
+  if(!exos.length) fail('aucun exercice');
+  const out = {id:cleanText(s.id, 100), name:cleanText(s.name, 200) || 'Séance sans nom'};
+  // Rest between exercises of the first versions, unused since: kept, not lost.
+  if(typeof s.restBetween==='number' && Number.isFinite(s.restBetween)) out.restBetween = s.restBetween;
+  out.exos = exos;
+  return out;
+}
+function cleanCustomExo(e){
+  const x = cleanExo(e);
+  const out = {id:cleanText(e.id, 100), name:x.name, cat:cleanText(e.cat, 60) || 'Personnalisé', type:x.type, icon:x.icon, sets:x.sets, val:x.val, rest:x.rest, custom:true};
+  // Optional extras a shared program may carry (all rendered escaped).
+  if(typeof e.equip==='string' && Object.prototype.hasOwnProperty.call(EQUIPMENT_LABELS, e.equip)) out.equip = e.equip;
+  const level = cleanText(e.level, 40), bandTip = cleanText(e.bandTip, 1000);
+  const muscles = cleanTexts(e.muscles, 12, 60), tips = cleanTexts(e.tips, 12, 1000);
+  if(level) out.level = level;
+  if(bandTip) out.bandTip = bandTip;
+  if(muscles.length) out.muscles = muscles;
+  if(tips.length) out.tips = tips;
+  return out;
+}
+function cleanLogExo(e){
+  if(!isObj(e)) fail('format illisible');
+  return {name:cleanText(e.name, 200) || 'Exercice', icon:cleanIcon(e.icon), type:e.type==='time' ? 'time' : 'reps',
+    plannedSets:cleanInt(e.plannedSets, 0, 0, MAX_VAL), plannedVal:cleanInt(e.plannedVal, 0, 0, MAX_VAL), completed:e.completed===true,
+    actualSets:cleanInt(e.actualSets, 0, 0, MAX_VAL), actualVal:cleanInt(e.actualVal, 0, 0, MAX_VAL)};
+}
+function cleanLog(l, strict){
+  if(!isObj(l)) fail('format illisible');
+  if(!Array.isArray(l.exercises)) fail("liste d'exercices manquante");
+  if(strict && l.exercises.length>200) fail('plus de 200 exercices');
+  return {id:cleanText(l.id, 100), sessionName:cleanText(l.sessionName, 200) || 'Séance', dateISO:cleanText(l.dateISO, 40),
+    exercises:cleanList(l.exercises, cleanLogExo, strict, 'exercice')};
+}
+function cleanSessions(v, strict){ return uniqueIds(cleanList(v, cleanSession, strict, 'séance'), 's_', []); }
+function cleanCustomExos(v, strict){ return uniqueIds(cleanList(v, cleanCustomExo, strict, 'exercice personnalisé'), 'custom_', EXO_LIB.map(e=>e.id)); }
+function cleanLogs(v, strict){ return cleanList(v, cleanLog, strict, 'entrée du suivi'); }
+// An export, or the copy kept to undo an import: only the sections present are returned.
+function cleanData(data, strict){
+  const none = "ce texte ne contient pas de données de l'app";
+  if(!isObj(data)) fail(none);
+  const out = {};
+  // Limits far above real use (the builder has none): they only stop absurd imports.
+  [['sessions', cleanSessions, 1000], ['customExos', cleanCustomExos, 1000], ['logs', cleanLogs, 20000]].forEach(([k, clean, max])=>{
+    const v = data[k];
+    if(v==null) return;
+    if(!Array.isArray(v)){ if(strict) fail('« '+k+' » doit être une liste'); return; }
+    if(strict && v.length>max) fail("trop d'éléments dans « "+k+' » ('+v.length+', maximum '+max+')');
+    out[k] = clean(v, strict);
+  });
+  [['settings', DEFAULT_SETTINGS], ['equipment', DEFAULT_EQUIPMENT]].forEach(([k, defaults])=>{
+    const v = data[k];
+    if(v==null) return;
+    if(!isObj(v)){ if(strict) fail('« '+k+' » doit être un objet'); return; }
+    out[k] = cleanFlags(v, defaults);
+  });
+  if(!Object.keys(out).length) fail(none);
+  return out;
+}
+
 /* ---------------- STORAGE ---------------- */
 const LS_SESSIONS = 'cal_sessions_v1';
 const LS_CUSTOM = 'cal_custom_exos_v1';
 const LS_SETTINGS = 'cal_settings_v1';
 const LS_EQUIPMENT = 'cal_equipment_v1';
 const LS_LOGS = 'cal_logs_v1';
+const LS_IMPORT_BACKUP = 'cal_import_backup_v1'; // data as it was before the last import
 
+function loadList(key, clean, fallback){
+  let raw = null, parsed = null;
+  try{ raw = localStorage.getItem(key); parsed = raw ? JSON.parse(raw) : null; }catch(e){}
+  if(!Array.isArray(parsed)) return fallback();
+  const list = clean(parsed, false);
+  if(JSON.stringify(list)!==raw){ try{ localStorage.setItem(key, JSON.stringify(list)); }catch(e){} } // keep the repair
+  return list;
+}
+function loadFlags(key, defaults){ try{ return cleanFlags(JSON.parse(localStorage.getItem(key)||'{}'), defaults); }catch(e){ return cleanFlags(null, defaults); } }
 function loadSessions(){
-  try{
-    const raw = localStorage.getItem(LS_SESSIONS);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  const d = defaultSessions();
-  saveSessions(d);
-  return d;
+  return loadList(LS_SESSIONS, cleanSessions, ()=>{
+    const d = defaultSessions();
+    saveSessions(d);
+    return d;
+  });
 }
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
-function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
+function loadCustomExos(){ return loadList(LS_CUSTOM, cleanCustomExos, ()=>[]); }
 function saveCustomExos(a){ try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
-function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true}; } }
+function loadSettings(){ return loadFlags(LS_SETTINGS, DEFAULT_SETTINGS); }
 function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
-function loadEquipment(){ try{ return Object.assign({pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}, JSON.parse(localStorage.getItem(LS_EQUIPMENT)||'{}')); }catch(e){ return {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}; } }
+function loadEquipment(){ return loadFlags(LS_EQUIPMENT, DEFAULT_EQUIPMENT); }
 function saveEquipment(eq){ try{ localStorage.setItem(LS_EQUIPMENT, JSON.stringify(eq)); }catch(e){} }
-function loadLogs(){ try{ return JSON.parse(localStorage.getItem(LS_LOGS)||'[]'); }catch(e){ return []; } }
+function loadLogs(){ return loadList(LS_LOGS, cleanLogs, ()=>[]); }
 function saveLogs(l){ try{ localStorage.setItem(LS_LOGS, JSON.stringify(l)); }catch(e){} }
+function loadImportBackup(){ try{ const b = JSON.parse(localStorage.getItem(LS_IMPORT_BACKUP)||'null'); return isObj(b) ? b : null; }catch(e){ return null; } }
+function saveImportBackup(b){
+  importBackup = b;
+  try{ if(b) localStorage.setItem(LS_IMPORT_BACKUP, JSON.stringify(b)); else localStorage.removeItem(LS_IMPORT_BACKUP); }catch(e){}
+}
 function gatherAllData(){
   return { app:'calisthenie-maison', version:1, exportedAt:new Date().toISOString(), sessions, customExos, settings, equipment, logs };
+}
+// Replaces the sections present in already cleaned data (import or undo).
+function applyData(d){
+  if(d.sessions){ sessions = d.sessions; saveSessions(sessions); }
+  if(d.customExos){ customExos = d.customExos; saveCustomExos(customExos); }
+  if(d.settings){ settings = d.settings; saveSettings(settings); }
+  if(d.equipment){ equipment = d.equipment; saveEquipment(equipment); }
+  if(d.logs){ logs = d.logs; saveLogs(logs); }
+  builderDraft = null; sheet = null; view = 'home';
 }
 
 /* ---------------- STATE ---------------- */
@@ -423,12 +562,15 @@ let customExos = loadCustomExos();
 let settings = loadSettings();
 let equipment = loadEquipment();
 let logs = loadLogs();
+let importBackup = loadImportBackup(); // offers « Annuler l'import » until dismissed
 let view = 'home'; // home | builder | library | tracking | player
-let builderDraft = null; // session being built
+let builderDraft = null; // session being built (same id as the session it edits)
 let editingIndex = null; // index of exo being edited in a sheet
 let sheet = null; // {type:'addExo'|'editExo'|'tips'|'equipment', ...}
 let player = null; // player state
 
+function findSession(id){ return sessions.find(s=>s.id===id); }
+function isEditDraft(){ return !!builderDraft && !!findSession(builderDraft.id); }
 function allExoLibrary(){ return EXO_LIB.concat(customExos); }
 function hasEquipment(exo){ return !exo.equip || !!equipment[exo.equip]; }
 function availableExoLibrary(){ return allExoLibrary().filter(hasEquipment); }
@@ -452,11 +594,33 @@ function toast(msg){
 }
 
 /* ---------------- AUDIO ---------------- */
+// iOS only lets an AudioContext play if it was created or resumed during a
+// tap: it is set up on « Démarrer » and resumed on any tap in the player
+// (iOS suspends it after an interruption), never first created by a timer.
 let actx = null;
+function resumeAudio(){ try{ const p = actx.resume(); if(p && p.catch) p.catch(()=>{}); }catch(e){} }
+function unlockAudio(){
+  if(!settings.sound) return;
+  try{
+    if(!actx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      actx = new AC();
+      // A silent sound played within the tap unlocks the output on older iOS.
+      const src = actx.createBufferSource();
+      src.buffer = actx.createBuffer(1, 1, 22050);
+      src.connect(actx.destination);
+      src.start(0);
+    }
+    if(actx.state!=='running') resumeAudio();
+  }catch(e){}
+}
+document.addEventListener('click', ()=>{ if(player) unlockAudio(); }, true);
 function beep(freq, dur, vol){
   if(!settings.sound) return;
   try{
     if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended') resumeAudio();
     const o = actx.createOscillator();
     const g = actx.createGain();
     o.type = 'sine';
@@ -473,22 +637,118 @@ function vibrate(pattern){
   try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
 
+/* ---------------- WAKE LOCK ---------------- */
+// Keeps the screen on during a session: otherwise it goes to sleep during the
+// rests, the timer gets throttled and the beeps and vibrations are lost.
+let wakeLock = null, wakeLockPending = false;
+function requestWakeLock(){
+  if(wakeLock || wakeLockPending || !('wakeLock' in navigator) || document.visibilityState!=='visible') return;
+  wakeLockPending = true;
+  try{
+    navigator.wakeLock.request('screen').then(lock=>{
+      wakeLockPending = false;
+      // The session may have ended while the request was pending.
+      if(!player || player.phase==='review'){ lock.release().catch(()=>{}); return; }
+      wakeLock = lock;
+      lock.addEventListener('release', ()=>{ if(wakeLock===lock) wakeLock = null; });
+    }).catch(()=>{ wakeLockPending = false; });
+  }catch(e){ wakeLockPending = false; }
+}
+function releaseWakeLock(){
+  const lock = wakeLock;
+  wakeLock = null;
+  if(lock){ try{ lock.release().catch(()=>{}); }catch(e){} }
+}
+// The browser drops the lock whenever the page is hidden: take it back on return.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && player && player.phase!=='review') requestWakeLock();
+});
+
 /* ---------------- RENDER ROOT ---------------- */
 function render(){
   const app = document.getElementById('app');
-  let html = '';
-  if(view === 'player' && player){
-    html = renderPlayer();
-  } else {
-    html = renderHeader() + (
-      view === 'home' ? renderHome() :
-      view === 'builder' ? renderBuilder() :
-      view === 'library' ? renderLibrary() :
-      view === 'tracking' ? renderTracking() : ''
-    );
+  let prevFocus = null, prevField = false, sheetWasOpen = false;
+  try{
+    sheetWasOpen = !!app.querySelector('.sheet');
+    const el = document.activeElement;
+    prevFocus = focusKey(el);
+    prevField = !!prevFocus && el.matches('input, textarea, select');
+  }catch(e){}
+  try{
+    let html = '';
+    if(view === 'player' && player){
+      html = renderPlayer();
+    } else {
+      html = renderHeader() + (
+        view === 'home' ? renderHome() :
+        view === 'builder' ? renderBuilder() :
+        view === 'library' ? renderLibrary() :
+        view === 'tracking' ? renderTracking() : ''
+      );
+    }
+    app.innerHTML = html + renderSheet();
+    attachEvents();
+  }catch(err){
+    renderRecovery(app, err);
+    return;
   }
-  app.innerHTML = html + renderSheet();
-  attachEvents();
+  try{ restoreFocus(app, prevFocus, prevField, sheetWasOpen); }catch(e){}
+}
+
+// Every render replaces the whole DOM, which drops the keyboard focus. The
+// focused control is identified by its id or data-* attributes (data-focus
+// when a control changes, like Pause/Reprendre) and focused again afterwards.
+let sheetOpener = null; // focus key of the control that opened the current sheet
+function focusKey(el){
+  const app = document.getElementById('app');
+  if(!el || el===app || !app.contains(el)) return null;
+  if(el.id) return '#'+CSS.escape(el.id);
+  if(el.hasAttribute('data-focus')) return '[data-focus="'+CSS.escape(el.getAttribute('data-focus'))+'"]';
+  const attrs = Array.from(el.attributes).filter(a=>a.name.indexOf('data-')===0);
+  return attrs.length ? el.tagName.toLowerCase()+attrs.map(a=>'['+a.name+'="'+CSS.escape(a.value)+'"]').join('') : null;
+}
+function restoreFocus(app, prevFocus, prevField, sheetWasOpen){
+  const sheetEl = app.querySelector('.sheet');
+  // Never a text field (iOS leaves the focus there when a button is tapped):
+  // focusing it again when the sheet closes would pop the keyboard up.
+  if(sheetEl && !sheetWasOpen) sheetOpener = prevField ? null : prevFocus;
+  // A closed sheet gives the focus back to its opener; an open one keeps it inside.
+  const key = !sheetEl && sheetWasOpen ? sheetOpener : prevFocus;
+  if(!sheetEl) sheetOpener = null;
+  let target = null;
+  try{ if(key) target = (sheetEl || app).querySelector(key); }catch(e){}
+  if(!target && sheetEl && (!sheetWasOpen || prevFocus)) target = sheetEl;
+  if(target) target.focus({preventScroll:true});
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && sheet){ sheet = null; render(); }
+});
+
+// Last resort instead of a blank page: explain, offer a way out, and show the
+// data so it can be copied before resetting anything.
+function renderRecovery(app, err){
+  try{ console.error(err); }catch(e){}
+  let dump = '';
+  try{ dump = JSON.stringify(gatherAllData(), null, 2); }catch(e){}
+  app.innerHTML = `<div class="card" role="alert" style="margin-top:20px;">
+    <h2>😵 Oups, l'affichage a planté</h2>
+    <p>Tes données sont toujours sur cet appareil. Reviens à l'accueil ; si le problème revient, copie tes données ci-dessous (pour les réimporter plus tard) puis réinitialise l'app.</p>
+    <p style="font-size:12px;">Détail : ${esc(err && err.message || err)}</p>
+    <button class="btn primary block" style="margin-top:12px;" id="recoverHome">↩ Revenir à l'accueil</button>
+    <details style="margin-top:12px;"><summary style="cursor:pointer;color:var(--muted);font-size:13px;">📤 Voir mes données (à copier)</summary>
+      <textarea readonly style="width:100%;min-height:160px;margin-top:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${esc(dump)}</textarea>
+    </details>
+    <button class="btn danger block" style="margin-top:12px;" id="recoverReset">Réinitialiser l'app</button>
+  </div>`;
+  document.getElementById('recoverHome').onclick = ()=>{
+    if(player){ clearTick(); releaseWakeLock(); player = null; }
+    view = 'home'; sheet = null; builderDraft = null; render();
+  };
+  document.getElementById('recoverReset').onclick = ()=>{
+    if(!confirm("Effacer toutes les données de l'app sur cet appareil (séances, exercices perso, équipement, suivi) ?")) return;
+    [LS_SESSIONS, LS_CUSTOM, LS_SETTINGS, LS_EQUIPMENT, LS_LOGS, LS_IMPORT_BACKUP].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+    location.reload();
+  };
 }
 
 function renderHeader(){
@@ -512,37 +772,16 @@ function renderHeader(){
 
 /* ---------------- HOME ---------------- */
 function renderHome(){
-  const newBtn = `<button class="btn primary block" data-action="newSession" style="margin-bottom:16px;">+ Nouvelle séance</button>`;
-  if(sessions.length===0){
-    return newBtn + `<div class="empty"><div class="big">🧘</div><h3>Aucune séance</h3><p>Crée ta première séance avec le bouton ci-dessus.</p></div>`;
-  }
-  return newBtn + sessions.map((s,i)=>{
-    const totalSets = s.exos.reduce((a,e)=>a+e.sets,0);
-    const estMin = Math.round(Math.max(0, s.exos.reduce((a,e)=>{
-      const work = e.type==='time' ? e.val : e.val*2.5; // estimate ~2.5s per rep
-      return a + e.sets*(work+e.rest);
-    },0) - s.exos[s.exos.length-1].rest)/60);
-    const muscles = getSessionMuscles(s);
-    return `
-    <div class="card">
-      <div class="row between">
-        <div>
-          <h2>${escapeHtml(s.name)}</h2>
-          <p>${s.exos.length} exercices · ${totalSets} séries · ~${estMin} min</p>
-        </div>
-        <div class="row">
-          <button class="icon-btn" data-edit-session="${i}" title="Modifier">✏️</button>
-          <button class="icon-btn" data-del-session="${i}" title="Supprimer">🗑️</button>
-        </div>
-      </div>
-      <div class="row wrap" style="margin-top:10px;">
-        ${s.exos.slice(0,5).map(e=>`<span class="pill">${e.icon} ${escapeHtml(e.name)}</span>`).join('')}
-        ${s.exos.length>5?`<span class="pill">+${s.exos.length-5}</span>`:''}
-      </div>
-      ${muscles.length ? `<p style="margin-top:8px;font-size:12px;">🎯 <b style="color:var(--text);font-weight:600;">Muscles travaillés :</b> ${muscles.map(m=>escapeHtml(m)).join(', ')}</p>` : ''}
-      <button class="btn primary block" style="margin-top:12px;" data-start-session="${i}">▶ Démarrer</button>
-    </div>`;
-  }).join('') + `
+  const undo = importBackup ? `<div class="card tight" style="border-color:var(--accent2);">
+    <p style="color:var(--text);margin:0 0 10px;">📥 Données importées. Pas ce que tu voulais ?</p>
+    <div class="row">
+      <button class="btn sm ghost block" data-action="keepImport">✓ Garder</button>
+      <button class="btn sm accent block" data-action="undoImport">↩ Annuler l'import</button>
+    </div>
+  </div>` : '';
+  const newBtn = undo + `<button class="btn primary block" data-action="newSession" style="margin-bottom:16px;">+ Nouvelle séance</button>`;
+  // Shown even without any session: Import/Export must stay reachable.
+  const settingsCard = `
   <div class="card tight" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
     <span style="font-size:13px;color:var(--muted);">Réglages</span>
     <div class="row wrap">
@@ -553,11 +792,42 @@ function renderHome(){
       <button class="btn sm ghost" data-action="openImport">📥 Import</button>
     </div>
   </div>`;
+  if(sessions.length===0){
+    return newBtn + `<div class="empty"><div class="big">🧘</div><h3>Aucune séance</h3><p>Crée ta première séance avec le bouton ci-dessus.</p></div>` + settingsCard;
+  }
+  return newBtn + sessions.map(s=>{
+    const totalSets = s.exos.reduce((a,e)=>a+e.sets,0);
+    const lastRest = s.exos.length ? s.exos[s.exos.length-1].rest : 0;
+    const estMin = Math.round(Math.max(0, s.exos.reduce((a,e)=>{
+      const work = e.type==='time' ? e.val : e.val*2.5; // estimate ~2.5s per rep
+      return a + e.sets*(work+e.rest);
+    },0) - lastRest)/60);
+    const muscles = getSessionMuscles(s);
+    return `
+    <div class="card">
+      <div class="row between">
+        <div>
+          <h2>${esc(s.name)}</h2>
+          <p>${s.exos.length} exercices · ${esc(totalSets)} séries · ~${esc(estMin)} min</p>
+        </div>
+        <div class="row">
+          <button class="icon-btn" data-edit-session="${esc(s.id)}" title="Modifier" aria-label="Modifier ${esc(s.name)}">✏️</button>
+          <button class="icon-btn" data-del-session="${esc(s.id)}" title="Supprimer" aria-label="Supprimer ${esc(s.name)}">🗑️</button>
+        </div>
+      </div>
+      <div class="row wrap" style="margin-top:10px;">
+        ${s.exos.slice(0,5).map(e=>`<span class="pill">${esc(e.icon)} ${esc(e.name)}</span>`).join('')}
+        ${s.exos.length>5?`<span class="pill">+${s.exos.length-5}</span>`:''}
+      </div>
+      ${muscles.length ? `<p style="margin-top:8px;font-size:12px;">🎯 <b style="color:var(--text);font-weight:600;">Muscles travaillés :</b> ${muscles.map(m=>esc(m)).join(', ')}</p>` : ''}
+      <button class="btn primary block" style="margin-top:12px;" data-start-session="${esc(s.id)}">▶ Démarrer</button>
+    </div>`;
+  }).join('') + settingsCard;
 }
 
 /* ---------------- BUILDER ---------------- */
 function newDraft(){
-  return {id:'s_'+Date.now(), name:'Nouvelle séance', exos:[]};
+  return {id:uid('s_'), name:'Nouvelle séance', exos:[]};
 }
 function renderBuilder(){
   if(!builderDraft) builderDraft = newDraft();
@@ -566,7 +836,7 @@ function renderBuilder(){
   <div class="card">
     <label class="field" style="margin-bottom:0;">
       <span>Nom de la séance</span>
-      <input type="text" id="sessionName" value="${escapeAttr(d.name)}">
+      <input type="text" id="sessionName" value="${esc(d.name)}">
     </label>
     <p style="margin-top:10px;">💡 Le temps de repos se règle exercice par exercice ci-dessous.</p>
   </div>
@@ -585,45 +855,45 @@ function renderBuilder(){
 }
 function renderBuilderExo(e,i){
   const libExo = getExoById(e.libId);
-  const equipNote = (libExo && libExo.equip) ? ` · 🎒 ${EQUIPMENT_LABELS[libExo.equip]}` : '';
+  const equipNote = (libExo && libExo.equip) ? ` · 🎒 ${esc(EQUIPMENT_LABELS[libExo.equip])}` : '';
   return `
   <div class="exo-item" style="flex-direction:column;align-items:stretch;">
     <div class="row between">
       <div class="row" style="gap:10px;min-width:0;">
-        <div class="emoji">${e.icon}</div>
+        <div class="emoji">${esc(e.icon)}</div>
         <div class="meta">
-          <b>${escapeHtml(e.name)}</b>
+          <b>${esc(e.name)}</b>
           <small>${e.type==='time' ? 'Basé sur le temps' : 'Basé sur les répétitions'}${equipNote}</small>
         </div>
       </div>
       <div class="row" style="gap:6px;flex-shrink:0;">
-        <button class="icon-btn" data-tips="${e.libId}" title="Conseils">💡</button>
-        <button class="icon-btn" data-remove-exo="${i}">✕</button>
+        <button class="icon-btn" data-tips="${esc(e.libId)}" title="Conseils" aria-label="Conseils : ${esc(e.name)}">💡</button>
+        <button class="icon-btn" data-remove-exo="${i}" title="Retirer" aria-label="Retirer ${esc(e.name)}">✕</button>
       </div>
     </div>
     <div class="row wrap" style="gap:18px;margin-top:12px;">
       <div class="stepper-col">
         <span class="stepper-label">Séries</span>
         <div class="stepper" title="Séries">
-          <button data-stepper="sets" data-i="${i}" data-d="-1">−</button>
-          <span>${e.sets}×</span>
-          <button data-stepper="sets" data-i="${i}" data-d="1">+</button>
+          <button data-stepper="sets" data-i="${i}" data-d="-1" aria-label="Moins de séries">−</button>
+          <span>${esc(e.sets)}×</span>
+          <button data-stepper="sets" data-i="${i}" data-d="1" aria-label="Plus de séries">+</button>
         </div>
       </div>
       <div class="stepper-col">
         <span class="stepper-label">${e.type==='time'?'Secondes':'Répétitions'}</span>
         <div class="stepper" title="${e.type==='time'?'Secondes':'Répétitions'}">
-          <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?-5:-1}">−</button>
-          <span>${e.val}</span>
-          <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?5:1}">+</button>
+          <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?-5:-1}" aria-label="${e.type==='time'?'Moins de secondes':'Moins de répétitions'}">−</button>
+          <span>${esc(e.val)}</span>
+          <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?5:1}" aria-label="${e.type==='time'?'Plus de secondes':'Plus de répétitions'}">+</button>
         </div>
       </div>
       <div class="stepper-col">
         <span class="stepper-label">Repos (s)</span>
         <div class="stepper" title="Repos entre les séries">
-          <button data-stepper="rest" data-i="${i}" data-d="-15">−</button>
-          <span>${e.rest}</span>
-          <button data-stepper="rest" data-i="${i}" data-d="15">+</button>
+          <button data-stepper="rest" data-i="${i}" data-d="-15" aria-label="Moins de repos">−</button>
+          <span>${esc(e.rest)}</span>
+          <button data-stepper="rest" data-i="${i}" data-d="15" aria-label="Plus de repos">+</button>
         </div>
       </div>
     </div>
@@ -632,26 +902,28 @@ function renderBuilderExo(e,i){
 
 /* ---------------- LIBRARY ---------------- */
 function renderLibrary(){
-  const cats = {};
+  const cats = Object.create(null);
   allExoLibrary().forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
   let html = `<button class="btn ghost block" data-action="openEquipment" style="margin-bottom:10px;">🎒 Gérer mon équipement</button>
   <button class="btn accent block" data-action="openCustomExo" style="margin-bottom:14px;">+ Créer un exercice personnalisé</button>`;
   Object.keys(cats).forEach(cat=>{
-    html += `<div class="cat-title">${escapeHtml(cat)}</div>`;
+    html += `<div class="cat-title">${esc(cat)}</div>`;
     cats[cat].forEach(e=>{
       const locked = e.equip && !equipment[e.equip];
-      const levelNote = e.level ? ` · ${escapeHtml(e.level)}` : '';
+      const levelNote = e.level ? ` · ${esc(e.level)}` : '';
       const bandNote = e.bandTip ? ' · 🎗️ élastique en option' : '';
-      const musclesNote = (e.muscles&&e.muscles.length) ? `<small style="display:block;color:var(--muted);">🎯 ${e.muscles.map(m=>escapeHtml(m)).join(' · ')}</small>` : '';
-      html += `<div class="card tight lib-item" style="margin-bottom:8px;${locked?'opacity:.5;':''}" data-tips="${e.id}">
-        <span class="emoji">${e.icon}</span>
-        <div style="flex:1;">
-          <b>${escapeHtml(e.name)}</b>
-          <small>${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${e.sets}×${e.val}${e.type==='time'?'s':''}${levelNote}${bandNote}${locked?` · 🔒 ${EQUIPMENT_LABELS[e.equip]}`:''}</small>
-          ${musclesNote}
-        </div>
-        <span class="pill">${locked?'🔒':'💡'}</span>
-        ${e.custom? `<button class="icon-btn" data-del-custom="${e.id}">🗑️</button>` : ''}
+      const musclesNote = (e.muscles&&e.muscles.length) ? `<small style="display:block;color:var(--muted);">🎯 ${e.muscles.map(m=>esc(m)).join(' · ')}</small>` : '';
+      html += `<div class="card tight lib-card" style="margin-bottom:8px;${locked?'opacity:.5;':''}">
+        <button class="lib-item" data-tips="${esc(e.id)}">
+          <span class="emoji" aria-hidden="true">${esc(e.icon)}</span>
+          <span style="flex:1;">
+            <b>${esc(e.name)}</b>
+            <small>${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${esc(e.sets)}×${esc(e.val)}${e.type==='time'?'s':''}${levelNote}${bandNote}${locked?` · 🔒 ${esc(EQUIPMENT_LABELS[e.equip])}`:''}</small>
+            ${musclesNote}
+          </span>
+          <span class="pill">${locked?'🔒':'💡'}</span>
+        </button>
+        ${e.custom? `<button class="icon-btn" data-del-custom="${esc(e.id)}" title="Supprimer" aria-label="Supprimer l'exercice ${esc(e.name)}">🗑️</button>` : ''}
       </div>`;
     });
   });
@@ -660,8 +932,9 @@ function renderLibrary(){
 
 /* ---------------- TRACKING ---------------- */
 function formatLogDate(iso){
+  const d = new Date(iso);
+  if(isNaN(d)) return String(iso||'');
   try{
-    const d = new Date(iso);
     const weekday = d.toLocaleDateString('fr-FR', {weekday:'long'});
     const dateStr = d.toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
     const timeStr = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
@@ -677,22 +950,22 @@ function renderTracking(){
     const realIdx = logs.length-1-idx;
     const exoRows = log.exercises.map(ex=>{
       const unit = ex.type==='time' ? 's' : '';
-      const plannedStr = `${ex.plannedSets}×${ex.plannedVal}${unit}`;
+      const plannedStr = `${esc(ex.plannedSets)}×${esc(ex.plannedVal)}${unit}`;
       const statusHtml = ex.completed
         ? `<span class="pill" style="color:var(--accent2);">✓ ${plannedStr}</span>`
-        : `<span class="pill" style="color:var(--accent);">${ex.actualSets}×${ex.actualVal}${unit} <span style="color:var(--muted);">(obj. ${plannedStr})</span></span>`;
+        : `<span class="pill" style="color:var(--accent);">${esc(ex.actualSets)}×${esc(ex.actualVal)}${unit} <span style="color:var(--muted);">(obj. ${plannedStr})</span></span>`;
       return `<div class="row between" style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);">
-        <span>${ex.icon} ${escapeHtml(ex.name)}</span>
+        <span>${esc(ex.icon)} ${esc(ex.name)}</span>
         ${statusHtml}
       </div>`;
     }).join('');
     return `<div class="card">
       <div class="row between">
         <div>
-          <h2>${escapeHtml(log.sessionName)}</h2>
-          <p>${formatLogDate(log.dateISO)}</p>
+          <h2>${esc(log.sessionName)}</h2>
+          <p>${esc(formatLogDate(log.dateISO))}</p>
         </div>
-        <button class="icon-btn" data-del-log="${realIdx}" title="Supprimer">🗑️</button>
+        <button class="icon-btn" data-del-log="${realIdx}" title="Supprimer" aria-label="Supprimer du suivi">🗑️</button>
       </div>
       <div style="margin-top:8px;">${exoRows}</div>
     </div>`;
@@ -704,29 +977,29 @@ function renderTracking(){
 function renderSheet(){
   if(!sheet) return '';
   if(sheet.type==='addExo'){
-    const cats = {};
+    const cats = Object.create(null);
     availableExoLibrary().forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
     const lockedCount = allExoLibrary().length - availableExoLibrary().length;
     let items = '';
     Object.keys(cats).forEach(cat=>{
-      items += `<div class="cat-title">${escapeHtml(cat)}</div>`;
+      items += `<div class="cat-title">${esc(cat)}</div>`;
       cats[cat].forEach(e=>{
-        items += `<div class="lib-item" data-pick-exo="${e.id}">
-          <span class="emoji">${e.icon}</span>
-          <div><b>${escapeHtml(e.name)}</b><small>${e.type==='time'?e.val+'s':e.val+' reps'} · ${e.sets} séries</small></div>
-        </div>`;
+        items += `<button class="lib-item" data-pick-exo="${esc(e.id)}">
+          <span class="emoji" aria-hidden="true">${esc(e.icon)}</span>
+          <span><b>${esc(e.name)}</b><small>${esc(e.val)}${e.type==='time'?'s':' reps'} · ${esc(e.sets)} séries</small></span>
+        </button>`;
       });
     });
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>Choisir un exercice</h3>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">Choisir un exercice</h3>
       ${items}
       ${lockedCount>0? `<p style="margin:12px 2px 0;">🔒 ${lockedCount} exercice${lockedCount>1?'s':''} nécessitant du matériel non activé. <button class="tips-btn" data-action="openEquipment" style="margin:8px 0 0;">🎒 Gérer mon équipement</button></p>` : ''}
       <button class="btn ghost block" style="margin-top:12px;" data-action="closeSheet">Fermer</button>
     </div></div>`;
   }
   if(sheet.type==='customExo'){
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>Nouvel exercice personnalisé</h3>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">Nouvel exercice personnalisé</h3>
       <label class="field"><span>Nom</span><input type="text" id="customName" placeholder="Ex : Pompes archer"></label>
       <label class="field"><span>Type</span>
         <select id="customType">
@@ -748,20 +1021,20 @@ function renderSheet(){
   if(sheet.type==='tips'){
     const exo = getExoById(sheet.exoId) || {name:'Exercice', icon:'⭐'};
     const tips = getTipsFor(sheet.exoId);
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
       <div class="row" style="margin-bottom:4px;">
-        <span style="font-size:30px;">${exo.icon}</span>
-        <h3 style="margin:0;">${escapeHtml(exo.name)}</h3>
+        <span style="font-size:30px;">${esc(exo.icon)}</span>
+        <h3 id="sheetTitle" style="margin:0;">${esc(exo.name)}</h3>
       </div>
       <p style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;">
-        ${exo.level ? `<span class="pill">Niveau : ${escapeHtml(exo.level)}</span>` : ''}
-        ${(exo.muscles||[]).map(m=>`<span class="pill">🎯 ${escapeHtml(m)}</span>`).join('')}
+        ${exo.level ? `<span class="pill">Niveau : ${esc(exo.level)}</span>` : ''}
+        ${(exo.muscles||[]).map(m=>`<span class="pill">🎯 ${esc(m)}</span>`).join('')}
       </p>
       <p style="margin-bottom:16px;">Bonne exécution &amp; préservation des articulations</p>
-      <ul class="tips-list">${tips.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ul>
+      <ul class="tips-list">${tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
       ${exo.bandTip ? `<div class="card tight" style="margin-top:16px;border-color:var(--accent2);">
         <b style="color:var(--accent2);">🎗️ Intensifier avec un élastique</b>
-        <p style="margin-top:4px;color:var(--text);font-size:13px;">${escapeHtml(exo.bandTip)}</p>
+        <p style="margin-top:4px;color:var(--text);font-size:13px;">${esc(exo.bandTip)}</p>
         ${!equipment.bands ? `<button class="tips-btn" data-action="openEquipment" style="margin-top:8px;">🎒 Activer "Élastiques" dans mon équipement</button>` : ''}
       </div>` : ''}
       <button class="btn ghost block" style="margin-top:18px;" data-action="closeSheet">Fermer</button>
@@ -778,8 +1051,8 @@ function renderSheet(){
         <button class="btn sm ${on?'accent':'ghost'}" data-toggle-equip="${key}">${on?'✓ Activé':'Désactivé'}</button>
       </div>`;
     }).join('');
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>🎒 Mon équipement</h3>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">🎒 Mon équipement</h3>
       <p style="margin-bottom:6px;">Active ce que tu as chez toi pour débloquer les exercices correspondants.</p>
       ${rows}
       <button class="btn ghost block" style="margin-top:18px;" data-action="closeSheet">Fermer</button>
@@ -787,10 +1060,10 @@ function renderSheet(){
   }
   if(sheet.type==='export'){
     const json = JSON.stringify(gatherAllData(), null, 2);
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>📤 Exporter mes données</h3>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">📤 Exporter mes données</h3>
       <p style="margin-bottom:10px;">Copie ce texte et garde-le quelque part (note, email, fichier...) pour le récupérer plus tard ou sur un autre appareil via "Importer".</p>
-      <textarea readonly id="exportArea" style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${escapeHtml(json)}</textarea>
+      <textarea readonly id="exportArea" style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${esc(json)}</textarea>
       <div class="row" style="margin-top:12px;gap:10px;">
         <button class="btn ghost block" data-action="closeSheet">Fermer</button>
         <button class="btn primary block" data-action="copyExport">📋 Copier</button>
@@ -798,10 +1071,11 @@ function renderSheet(){
     </div></div>`;
   }
   if(sheet.type==='import'){
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>📥 Importer des données</h3>
-      <p style="margin-bottom:10px;">Colle ici le texte exporté depuis un autre appareil. <b>Cela remplacera tes séances, exercices personnalisés, équipement et suivi actuels.</b></p>
-      <textarea id="importArea" placeholder="Colle le JSON exporté ici..." style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;"></textarea>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">📥 Importer des données</h3>
+      <p style="margin-bottom:10px;">Colle ici le texte exporté depuis un autre appareil. <b>Cela remplacera tes séances, exercices personnalisés, équipement et suivi actuels.</b> Tu pourras annuler l'import juste après.</p>
+      <textarea id="importArea" placeholder="Colle le JSON exporté ici..." style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${esc(sheet.text)}</textarea>
+      ${sheet.error ? `<p role="alert" style="color:var(--danger);margin-top:8px;">${esc(sheet.error)}</p>` : ''}
       <div class="row" style="margin-top:12px;gap:10px;">
         <button class="btn ghost block" data-action="closeSheet">Annuler</button>
         <button class="btn primary block" data-action="doImport">📥 Importer</button>
@@ -821,8 +1095,10 @@ function flattenSteps(session){
   return steps;
 }
 
-function startSession(idx){
-  const session = JSON.parse(JSON.stringify(sessions[idx]));
+function startSession(id){
+  const found = findSession(id);
+  if(!found){ render(); return; }
+  const session = JSON.parse(JSON.stringify(found));
   const steps = flattenSteps(session);
   if(steps.length===0){ toast('Cette séance est vide.'); return; }
   player = {
@@ -837,6 +1113,7 @@ function startSession(idx){
   };
   view = 'player';
   render();
+  requestWakeLock();
 }
 
 function currentStep(){ return player.steps[player.stepIdx]; }
@@ -952,6 +1229,7 @@ function goToNextStep(){
 
 function finishSession(){
   clearTick();
+  releaseWakeLock();
   player.phase='review';
   player.review = player.session.exos.map(e=>({completed:true, actualSets:e.sets, actualVal:e.val}));
   beep(660,150,0.15); setTimeout(()=>beep(880,150,0.15),160); setTimeout(()=>beep(1100,220,0.18),320);
@@ -984,6 +1262,7 @@ function saveReview(){
 
 function exitPlayer(){
   clearTick();
+  releaseWakeLock();
   player=null;
   view='home';
   render();
@@ -994,8 +1273,8 @@ function renderReviewExo(e,i){
   const unit = e.type==='time' ? 's' : '';
   return `<div class="card tight" style="margin-bottom:10px;">
     <div class="row between">
-      <b>${e.icon} ${escapeHtml(e.name)}</b>
-      <span class="pill">Objectif ${e.sets}×${e.val}${unit}</span>
+      <b>${esc(e.icon)} ${esc(e.name)}</b>
+      <span class="pill">Objectif ${esc(e.sets)}×${esc(e.val)}${unit}</span>
     </div>
     <div class="row" style="margin-top:10px;gap:8px;">
       <button class="btn sm ${ans.completed?'accent':'ghost'}" data-review-done="${i}" data-val="1">✓ Réussi</button>
@@ -1004,10 +1283,10 @@ function renderReviewExo(e,i){
     ${!ans.completed ? `
     <div class="row" style="margin-top:10px;gap:10px;">
       <label class="field" style="flex:1;margin-bottom:0;"><span>Séries réussies</span>
-        <input type="number" min="0" data-review-field="sets" data-i="${i}" value="${ans.actualSets}">
+        <input type="number" min="0" data-review-field="sets" data-i="${i}" value="${esc(ans.actualSets)}">
       </label>
       <label class="field" style="flex:1;margin-bottom:0;"><span>${e.type==='time'?'Temps max (s)':'Reps max'}</span>
-        <input type="number" min="0" data-review-field="val" data-i="${i}" value="${ans.actualVal}">
+        <input type="number" min="0" data-review-field="val" data-i="${i}" value="${esc(ans.actualVal)}">
       </label>
     </div>` : ''}
   </div>`;
@@ -1019,7 +1298,7 @@ function renderPlayer(){
     return `<div class="player" style="text-align:left;padding-top:10px;">
       <div class="big-emoji" style="text-align:center;">🎉</div>
       <h1 style="text-align:center;">Séance terminée !</h1>
-      <p style="text-align:center;margin-bottom:20px;">${escapeHtml(s.name)} — comment ça s'est passé ?</p>
+      <p style="text-align:center;margin-bottom:20px;">${esc(s.name)} — comment ça s'est passé ?</p>
       ${s.exos.map((e,i)=>renderReviewExo(e,i)).join('')}
       <div class="row" style="margin-top:6px;gap:10px;">
         <button class="btn ghost block" data-action="skipReview">Ignorer</button>
@@ -1035,7 +1314,7 @@ function renderPlayer(){
   if(player.phase==='rest'){
     if(nextStep){
       const isNewExo = nextStep.exoIndex !== st.exoIndex;
-      nextLabel = isNewExo ? `Prochain : <b>${nextStep.exo.icon} ${escapeHtml(nextStep.exo.name)}</b>` : `Série suivante : <b>${nextStep.exo.icon} ${escapeHtml(nextStep.exo.name)}</b>`;
+      nextLabel = isNewExo ? `Prochain : <b>${esc(nextStep.exo.icon)} ${esc(nextStep.exo.name)}</b>` : `Série suivante : <b>${esc(nextStep.exo.icon)} ${esc(nextStep.exo.name)}</b>`;
     } else {
       nextLabel = `Dernière ligne droite ✨`;
     }
@@ -1046,18 +1325,18 @@ function renderPlayer(){
 
   if(player.phase==='work'){
     if(st.exo.type==='time'){
-      centerHtml = `<div class="big-emoji">${st.exo.icon}</div><div class="timer glow-work">${formatTime(player.remaining)}</div>`;
+      centerHtml = `<div class="big-emoji">${esc(st.exo.icon)}</div><div class="timer glow-work">${formatTime(player.remaining)}</div>`;
       controlsHtml = `
         <div class="controls">
-          ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">▶ Reprendre</button>`}
+          ${player.running ? `<button class="btn ghost" data-action="pause" data-focus="main">⏸ Pause</button>` : `<button class="btn primary" data-action="resume" data-focus="main">▶ Reprendre</button>`}
           <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
           <button class="btn ghost" data-action="skip">⏭ Passer</button>
         </div>`;
     } else {
-      centerHtml = `<div class="big-emoji">${st.exo.icon}</div><div class="reps-target">${st.exo.val} <span>reps</span></div>`;
+      centerHtml = `<div class="big-emoji">${esc(st.exo.icon)}</div><div class="reps-target">${esc(st.exo.val)} <span>reps</span></div>`;
       controlsHtml = `
         <div class="controls">
-          <button class="btn primary" data-action="completeReps">✓ Série terminée</button>
+          <button class="btn primary" data-action="completeReps" data-focus="main">✓ Série terminée</button>
           <button class="btn ghost" data-action="skip">⏭ Passer</button>
         </div>`;
     }
@@ -1069,7 +1348,7 @@ function renderPlayer(){
         <button class="btn ghost sm" data-action="restPlus">+15s</button>
       </div>
       <div class="controls">
-        ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">▶ Reprendre</button>`}
+        ${player.running ? `<button class="btn ghost" data-action="pause" data-focus="main">⏸ Pause</button>` : `<button class="btn primary" data-action="resume" data-focus="main">▶ Reprendre</button>`}
         <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
         <button class="btn ghost" data-action="skip">⏭ Passer le repos</button>
       </div>`;
@@ -1078,15 +1357,15 @@ function renderPlayer(){
   return `
   <div class="player" id="playerRoot">
     <div class="row between" style="margin-bottom:6px;">
-      <button class="icon-btn" data-action="exitPlayer">✕</button>
-      <span class="pill">${escapeHtml(s.name)}</span>
+      <button class="icon-btn" data-action="exitPlayer" title="Quitter" aria-label="Quitter la séance">✕</button>
+      <span class="pill">${esc(s.name)}</span>
       <span class="pill">${player.stepIdx+1}/${totalSteps}</span>
     </div>
     <div class="progress-outer"><div class="progress-inner" style="width:${progressPct}%"></div></div>
     <span class="phase-tag ${player.phase}">${player.phase==='work'?'EN COURS':'REPOS'}</span>
-    <div class="exo-name">${escapeHtml(st.exo.name)}</div>
-    <div class="set-count">Série ${st.setIndex+1} / ${st.exo.sets}</div>
-    <button class="tips-btn" data-tips="${st.exo.libId}">💡 Conseils &amp; sécurité</button>
+    <div class="exo-name">${esc(st.exo.name)}</div>
+    <div class="set-count">Série ${st.setIndex+1} / ${esc(st.exo.sets)}</div>
+    <button class="tips-btn" data-tips="${esc(st.exo.libId)}">💡 Conseils &amp; sécurité</button>
     ${centerHtml}
     ${controlsHtml}
     ${nextLabel? `<div class="next-preview">${nextLabel}</div>` : ''}
@@ -1109,15 +1388,20 @@ function formatTime(sec){
 }
 
 /* ---------------- HELPERS ---------------- */
-function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function escapeAttr(str){ return escapeHtml(str); }
+// Every stored or imported value interpolated in the HTML goes through esc(),
+// in text and in attributes alike.
+function esc(v){ return String(v==null ? '' : v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ---------------- EVENTS ---------------- */
 function attachEvents(){
   const app = document.getElementById('app');
 
   app.querySelectorAll('[data-nav]').forEach(b=>b.onclick = ()=>{
-    view = b.getAttribute('data-nav');
+    const to = b.getAttribute('data-nav');
+    // « Créer » must never resume the edit of an existing session: leaving the
+    // builder through the tabs drops it (a new session in progress is kept).
+    if(view==='builder' && to!=='builder' && isEditDraft()) builderDraft = null;
+    view = to;
     if(view==='builder' && !builderDraft) builderDraft = newDraft();
     render();
   });
@@ -1129,17 +1413,18 @@ function attachEvents(){
     render();
   });
 
-  app.querySelectorAll('[data-start-session]').forEach(b=>b.onclick = ()=>startSession(parseInt(b.getAttribute('data-start-session'))));
+  app.querySelectorAll('[data-start-session]').forEach(b=>b.onclick = ()=>{ unlockAudio(); startSession(b.getAttribute('data-start-session')); });
   app.querySelectorAll('[data-del-session]').forEach(b=>b.onclick = ()=>{
-    const i = parseInt(b.getAttribute('data-del-session'));
-    if(confirm('Supprimer la séance "'+sessions[i].name+'" ?')){
-      sessions.splice(i,1); saveSessions(sessions); render();
+    const s = findSession(b.getAttribute('data-del-session'));
+    if(s && confirm('Supprimer la séance "'+s.name+'" ?')){
+      if(builderDraft && builderDraft.id===s.id) builderDraft = null;
+      sessions = sessions.filter(x=>x!==s); saveSessions(sessions); render();
     }
   });
   app.querySelectorAll('[data-edit-session]').forEach(b=>b.onclick = ()=>{
-    const i = parseInt(b.getAttribute('data-edit-session'));
-    builderDraft = JSON.parse(JSON.stringify(sessions[i]));
-    builderDraft._editIndex = i;
+    const s = findSession(b.getAttribute('data-edit-session'));
+    if(!s) return;
+    builderDraft = JSON.parse(JSON.stringify(s));
     view='builder'; render();
   });
 
@@ -1152,9 +1437,9 @@ function attachEvents(){
     const i = parseInt(b.getAttribute('data-i'));
     const d = parseInt(b.getAttribute('data-d'));
     const e = builderDraft.exos[i];
-    if(field==='sets') e.sets = Math.max(1, e.sets+d);
-    if(field==='val') e.val = Math.max(e.type==='time'?5:1, e.val+d);
-    if(field==='rest') e.rest = Math.max(0, e.rest+d);
+    if(field==='sets') e.sets = Math.min(MAX_SETS, Math.max(1, e.sets+d));
+    if(field==='val') e.val = Math.min(MAX_VAL, Math.max(e.type==='time'?5:1, e.val+d));
+    if(field==='rest') e.rest = Math.min(MAX_REST, Math.max(0, e.rest+d));
     render();
   });
   app.querySelectorAll('[data-remove-exo]').forEach(b=>b.onclick = ()=>{
@@ -1183,27 +1468,37 @@ function attachEvents(){
       const raw = ta ? ta.value.trim() : '';
       if(!raw){ toast("Colle d'abord un texte exporté."); return; }
       let data;
-      try{ data = JSON.parse(raw); }catch(e){ toast('Texte invalide : vérifie que tu as bien tout copié.'); return; }
-      if(!data || typeof data!=='object'){ toast('Format invalide.'); return; }
+      try{
+        try{ data = JSON.parse(raw); }catch(e){ fail('texte illisible, vérifie que tu as bien tout copié'); }
+        data = cleanData(data, true);
+      }catch(e){
+        // Keep the pasted text and say why, instead of a toast that vanishes.
+        sheet = {type:'import', text:raw, error:'Import refusé : '+e.message+". Tes données n'ont pas été modifiées."};
+        render(); return;
+      }
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
-      if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
-      if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
-      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true}, data.settings); saveSettings(settings); }
-      if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
-      if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
-      sheet=null; view='home'; toast('Données importées ✓'); render();
+      saveImportBackup(JSON.parse(JSON.stringify({sessions, customExos, settings, equipment, logs})));
+      applyData(data);
+      toast('Données importées ✓'); render();
     },
+    undoImport: ()=>{
+      if(!importBackup || !confirm("Revenir aux données d'avant l'import ? Ce que tu as modifié depuis sera perdu.")) return;
+      let data = null;
+      try{ data = cleanData(importBackup, false); }catch(e){}
+      saveImportBackup(null);
+      if(data){ applyData(data); toast('Import annulé ✓'); }
+      else toast("Copie d'avant l'import illisible : rien n'a été changé.");
+      render();
+    },
+    keepImport: ()=>{ saveImportBackup(null); render(); },
     closeSheet: ()=>{ sheet=null; render(); },
     newSession: ()=>{ builderDraft = newDraft(); view='builder'; render(); },
     cancelBuilder: ()=>{ builderDraft=null; view='home'; render(); },
     saveSession: ()=>{
       if(!builderDraft.name.trim()) builderDraft.name='Séance sans nom';
-      if(builderDraft._editIndex!=null){
-        sessions[builderDraft._editIndex] = builderDraft;
-        delete sessions[builderDraft._editIndex]._editIndex;
-      } else {
-        sessions.push(builderDraft);
-      }
+      // Matched by id: the list may have changed since the edit began.
+      const i = sessions.findIndex(s=>s.id===builderDraft.id);
+      if(i>=0) sessions[i] = builderDraft; else sessions.push(builderDraft);
       saveSessions(sessions);
       builderDraft=null; view='home'; toast('Séance enregistrée ✓'); render();
     },
@@ -1278,7 +1573,9 @@ function attachEvents(){
   app.querySelectorAll('[data-del-custom]').forEach(b=>b.onclick = (ev)=>{
     ev.stopPropagation();
     const id = b.getAttribute('data-del-custom');
-    customExos = customExos.filter(x=>x.id!==id);
+    const exo = customExos.find(x=>x.id===id);
+    if(!exo || !confirm('Supprimer l\'exercice "'+exo.name+'" ? Les séances qui l\'utilisent le gardent.')) return;
+    customExos = customExos.filter(x=>x!==exo);
     saveCustomExos(customExos); render();
   });
 
@@ -1287,6 +1584,14 @@ function attachEvents(){
 }
 
 render();
+
+// Everything lives in this browser's storage: ask it not to evict the data
+// when space runs low. The browser grants or refuses it on its own.
+try{
+  if(navigator.storage && navigator.storage.persisted && navigator.storage.persist){
+    navigator.storage.persisted().then(p=>{ if(!p) return navigator.storage.persist(); }).catch(()=>{});
+  }
+}catch(e){}
 })();
 </script>
 <script>
