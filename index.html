@@ -1570,6 +1570,14 @@ function attachEvents(){
 }
 
 render();
+
+// Everything lives in this browser's storage: ask it not to evict the data
+// when space runs low. The browser grants or refuses it on its own.
+try{
+  if(navigator.storage && navigator.storage.persisted && navigator.storage.persist){
+    navigator.storage.persisted().then(p=>{ if(!p) return navigator.storage.persist(); }).catch(()=>{});
+  }
+}catch(e){}
 })();
 </script>
 <script>
