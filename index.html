@@ -100,7 +100,7 @@
   .btn.block{width:100%;}
   .btn.sm{padding:8px 10px;font-size:12px;border-radius:10px;}
   .btn:disabled{opacity:.4;cursor:not-allowed;}
-  .btn:focus-visible, .icon-btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
   .icon-btn{
     width:38px;height:38px;border-radius:10px;background:linear-gradient(160deg, var(--card2), var(--card));border:1px solid var(--border);
     color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;
@@ -176,6 +176,13 @@
   .lib-item .emoji{font-size:22px;width:32px;text-align:center;}
   .lib-item b{font-size:14px;display:block;}
   .lib-item small{color:var(--muted);}
+  button.lib-item{width:100%;background:none;border:0;color:inherit;font:inherit;text-align:left;}
+  .card.lib-card{display:flex;align-items:center;padding:0;}
+  .lib-card .lib-item{flex:1;width:auto;min-width:0;padding:12px 14px;border-radius:0;}
+  .lib-card .lib-item:not(:last-child){padding-right:12px;}
+  .lib-card .lib-item:focus-visible{outline-offset:-2px;}
+  .lib-card .icon-btn{flex-shrink:0;margin-right:14px;}
+  .sheet:focus{outline:none;}
 
   .tips-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;}
   .tips-list li{padding-left:24px;position:relative;font-size:14px;line-height:1.55;color:var(--text);}
@@ -185,7 +192,7 @@
 </head>
 <body>
 <div id="app"></div>
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
 (function(){
@@ -633,6 +640,8 @@ document.addEventListener('visibilitychange', ()=>{
 /* ---------------- RENDER ROOT ---------------- */
 function render(){
   const app = document.getElementById('app');
+  const prevFocus = focusKey(document.activeElement);
+  const sheetWasOpen = !!app.querySelector('.sheet');
   try{
     let html = '';
     if(view === 'player' && player){
@@ -649,8 +658,37 @@ function render(){
     attachEvents();
   }catch(err){
     renderRecovery(app, err);
+    return;
   }
+  restoreFocus(app, prevFocus, sheetWasOpen);
 }
+
+// Every render replaces the whole DOM, which drops the keyboard focus. The
+// focused control is identified by its id or data-* attributes (data-focus
+// when a control changes, like Pause/Reprendre) and focused again afterwards.
+let sheetOpener = null; // focus key of the control that opened the current sheet
+function focusKey(el){
+  const app = document.getElementById('app');
+  if(!el || el===app || !app.contains(el)) return null;
+  if(el.id) return '#'+CSS.escape(el.id);
+  if(el.hasAttribute('data-focus')) return '[data-focus="'+CSS.escape(el.getAttribute('data-focus'))+'"]';
+  const attrs = Array.from(el.attributes).filter(a=>a.name.indexOf('data-')===0);
+  return attrs.length ? el.tagName.toLowerCase()+attrs.map(a=>'['+a.name+'="'+CSS.escape(a.value)+'"]').join('') : null;
+}
+function restoreFocus(app, prevFocus, sheetWasOpen){
+  const sheetEl = app.querySelector('.sheet');
+  if(sheetEl && !sheetWasOpen) sheetOpener = prevFocus;
+  // A closed sheet gives the focus back to its opener; an open one keeps it inside.
+  const key = !sheetEl && sheetWasOpen ? sheetOpener : prevFocus;
+  if(!sheetEl) sheetOpener = null;
+  let target = null;
+  try{ if(key) target = (sheetEl || app).querySelector(key); }catch(e){}
+  if(!target && sheetEl && (!sheetWasOpen || prevFocus)) target = sheetEl;
+  if(target) target.focus({preventScroll:true});
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && sheet){ sheet = null; render(); }
+});
 
 // Last resort instead of a blank page: explain, offer a way out, and show the
 // data so it can be copied before resetting anything.
@@ -727,8 +765,8 @@ function renderHome(){
           <p>${s.exos.length} exercices · ${esc(totalSets)} séries · ~${esc(estMin)} min</p>
         </div>
         <div class="row">
-          <button class="icon-btn" data-edit-session="${esc(s.id)}" title="Modifier">✏️</button>
-          <button class="icon-btn" data-del-session="${esc(s.id)}" title="Supprimer">🗑️</button>
+          <button class="icon-btn" data-edit-session="${esc(s.id)}" title="Modifier" aria-label="Modifier ${esc(s.name)}">✏️</button>
+          <button class="icon-btn" data-del-session="${esc(s.id)}" title="Supprimer" aria-label="Supprimer ${esc(s.name)}">🗑️</button>
         </div>
       </div>
       <div class="row wrap" style="margin-top:10px;">
@@ -793,33 +831,33 @@ function renderBuilderExo(e,i){
         </div>
       </div>
       <div class="row" style="gap:6px;flex-shrink:0;">
-        <button class="icon-btn" data-tips="${esc(e.libId)}" title="Conseils">💡</button>
-        <button class="icon-btn" data-remove-exo="${i}">✕</button>
+        <button class="icon-btn" data-tips="${esc(e.libId)}" title="Conseils" aria-label="Conseils : ${esc(e.name)}">💡</button>
+        <button class="icon-btn" data-remove-exo="${i}" title="Retirer" aria-label="Retirer ${esc(e.name)}">✕</button>
       </div>
     </div>
     <div class="row wrap" style="gap:18px;margin-top:12px;">
       <div class="stepper-col">
         <span class="stepper-label">Séries</span>
         <div class="stepper" title="Séries">
-          <button data-stepper="sets" data-i="${i}" data-d="-1">−</button>
+          <button data-stepper="sets" data-i="${i}" data-d="-1" aria-label="Moins de séries">−</button>
           <span>${esc(e.sets)}×</span>
-          <button data-stepper="sets" data-i="${i}" data-d="1">+</button>
+          <button data-stepper="sets" data-i="${i}" data-d="1" aria-label="Plus de séries">+</button>
         </div>
       </div>
       <div class="stepper-col">
         <span class="stepper-label">${e.type==='time'?'Secondes':'Répétitions'}</span>
         <div class="stepper" title="${e.type==='time'?'Secondes':'Répétitions'}">
-          <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?-5:-1}">−</button>
+          <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?-5:-1}" aria-label="${e.type==='time'?'Moins de secondes':'Moins de répétitions'}">−</button>
           <span>${esc(e.val)}</span>
-          <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?5:1}">+</button>
+          <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?5:1}" aria-label="${e.type==='time'?'Plus de secondes':'Plus de répétitions'}">+</button>
         </div>
       </div>
       <div class="stepper-col">
         <span class="stepper-label">Repos (s)</span>
         <div class="stepper" title="Repos entre les séries">
-          <button data-stepper="rest" data-i="${i}" data-d="-15">−</button>
+          <button data-stepper="rest" data-i="${i}" data-d="-15" aria-label="Moins de repos">−</button>
           <span>${esc(e.rest)}</span>
-          <button data-stepper="rest" data-i="${i}" data-d="15">+</button>
+          <button data-stepper="rest" data-i="${i}" data-d="15" aria-label="Plus de repos">+</button>
         </div>
       </div>
     </div>
@@ -839,15 +877,17 @@ function renderLibrary(){
       const levelNote = e.level ? ` · ${esc(e.level)}` : '';
       const bandNote = e.bandTip ? ' · 🎗️ élastique en option' : '';
       const musclesNote = (e.muscles&&e.muscles.length) ? `<small style="display:block;color:var(--muted);">🎯 ${e.muscles.map(m=>esc(m)).join(' · ')}</small>` : '';
-      html += `<div class="card tight lib-item" style="margin-bottom:8px;${locked?'opacity:.5;':''}" data-tips="${esc(e.id)}">
-        <span class="emoji">${esc(e.icon)}</span>
-        <div style="flex:1;">
-          <b>${esc(e.name)}</b>
-          <small>${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${esc(e.sets)}×${esc(e.val)}${e.type==='time'?'s':''}${levelNote}${bandNote}${locked?` · 🔒 ${esc(EQUIPMENT_LABELS[e.equip])}`:''}</small>
-          ${musclesNote}
-        </div>
-        <span class="pill">${locked?'🔒':'💡'}</span>
-        ${e.custom? `<button class="icon-btn" data-del-custom="${esc(e.id)}">🗑️</button>` : ''}
+      html += `<div class="card tight lib-card" style="margin-bottom:8px;${locked?'opacity:.5;':''}">
+        <button class="lib-item" data-tips="${esc(e.id)}">
+          <span class="emoji" aria-hidden="true">${esc(e.icon)}</span>
+          <span style="flex:1;">
+            <b>${esc(e.name)}</b>
+            <small>${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${esc(e.sets)}×${esc(e.val)}${e.type==='time'?'s':''}${levelNote}${bandNote}${locked?` · 🔒 ${esc(EQUIPMENT_LABELS[e.equip])}`:''}</small>
+            ${musclesNote}
+          </span>
+          <span class="pill">${locked?'🔒':'💡'}</span>
+        </button>
+        ${e.custom? `<button class="icon-btn" data-del-custom="${esc(e.id)}" title="Supprimer" aria-label="Supprimer l'exercice ${esc(e.name)}">🗑️</button>` : ''}
       </div>`;
     });
   });
@@ -889,7 +929,7 @@ function renderTracking(){
           <h2>${esc(log.sessionName)}</h2>
           <p>${esc(formatLogDate(log.dateISO))}</p>
         </div>
-        <button class="icon-btn" data-del-log="${realIdx}" title="Supprimer">🗑️</button>
+        <button class="icon-btn" data-del-log="${realIdx}" title="Supprimer" aria-label="Supprimer du suivi">🗑️</button>
       </div>
       <div style="margin-top:8px;">${exoRows}</div>
     </div>`;
@@ -908,22 +948,22 @@ function renderSheet(){
     Object.keys(cats).forEach(cat=>{
       items += `<div class="cat-title">${esc(cat)}</div>`;
       cats[cat].forEach(e=>{
-        items += `<div class="lib-item" data-pick-exo="${esc(e.id)}">
-          <span class="emoji">${esc(e.icon)}</span>
-          <div><b>${esc(e.name)}</b><small>${esc(e.val)}${e.type==='time'?'s':' reps'} · ${esc(e.sets)} séries</small></div>
-        </div>`;
+        items += `<button class="lib-item" data-pick-exo="${esc(e.id)}">
+          <span class="emoji" aria-hidden="true">${esc(e.icon)}</span>
+          <span><b>${esc(e.name)}</b><small>${esc(e.val)}${e.type==='time'?'s':' reps'} · ${esc(e.sets)} séries</small></span>
+        </button>`;
       });
     });
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>Choisir un exercice</h3>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">Choisir un exercice</h3>
       ${items}
       ${lockedCount>0? `<p style="margin:12px 2px 0;">🔒 ${lockedCount} exercice${lockedCount>1?'s':''} nécessitant du matériel non activé. <button class="tips-btn" data-action="openEquipment" style="margin:8px 0 0;">🎒 Gérer mon équipement</button></p>` : ''}
       <button class="btn ghost block" style="margin-top:12px;" data-action="closeSheet">Fermer</button>
     </div></div>`;
   }
   if(sheet.type==='customExo'){
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>Nouvel exercice personnalisé</h3>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">Nouvel exercice personnalisé</h3>
       <label class="field"><span>Nom</span><input type="text" id="customName" placeholder="Ex : Pompes archer"></label>
       <label class="field"><span>Type</span>
         <select id="customType">
@@ -945,10 +985,10 @@ function renderSheet(){
   if(sheet.type==='tips'){
     const exo = getExoById(sheet.exoId) || {name:'Exercice', icon:'⭐'};
     const tips = getTipsFor(sheet.exoId);
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
       <div class="row" style="margin-bottom:4px;">
         <span style="font-size:30px;">${esc(exo.icon)}</span>
-        <h3 style="margin:0;">${esc(exo.name)}</h3>
+        <h3 id="sheetTitle" style="margin:0;">${esc(exo.name)}</h3>
       </div>
       <p style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;">
         ${exo.level ? `<span class="pill">Niveau : ${esc(exo.level)}</span>` : ''}
@@ -975,8 +1015,8 @@ function renderSheet(){
         <button class="btn sm ${on?'accent':'ghost'}" data-toggle-equip="${key}">${on?'✓ Activé':'Désactivé'}</button>
       </div>`;
     }).join('');
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>🎒 Mon équipement</h3>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">🎒 Mon équipement</h3>
       <p style="margin-bottom:6px;">Active ce que tu as chez toi pour débloquer les exercices correspondants.</p>
       ${rows}
       <button class="btn ghost block" style="margin-top:18px;" data-action="closeSheet">Fermer</button>
@@ -984,8 +1024,8 @@ function renderSheet(){
   }
   if(sheet.type==='export'){
     const json = JSON.stringify(gatherAllData(), null, 2);
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>📤 Exporter mes données</h3>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">📤 Exporter mes données</h3>
       <p style="margin-bottom:10px;">Copie ce texte et garde-le quelque part (note, email, fichier...) pour le récupérer plus tard ou sur un autre appareil via "Importer".</p>
       <textarea readonly id="exportArea" style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${esc(json)}</textarea>
       <div class="row" style="margin-top:12px;gap:10px;">
@@ -995,8 +1035,8 @@ function renderSheet(){
     </div></div>`;
   }
   if(sheet.type==='import'){
-    return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
-      <h3>📥 Importer des données</h3>
+    return `<div class="overlay" data-close-sheet="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 id="sheetTitle">📥 Importer des données</h3>
       <p style="margin-bottom:10px;">Colle ici le texte exporté depuis un autre appareil. <b>Cela remplacera tes séances, exercices personnalisés, équipement et suivi actuels.</b> Tu pourras annuler l'import juste après.</p>
       <textarea id="importArea" placeholder="Colle le JSON exporté ici..." style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${esc(sheet.text)}</textarea>
       ${sheet.error ? `<p role="alert" style="color:var(--danger);margin-top:8px;">${esc(sheet.error)}</p>` : ''}
@@ -1252,7 +1292,7 @@ function renderPlayer(){
       centerHtml = `<div class="big-emoji">${esc(st.exo.icon)}</div><div class="timer glow-work">${formatTime(player.remaining)}</div>`;
       controlsHtml = `
         <div class="controls">
-          ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">▶ Reprendre</button>`}
+          ${player.running ? `<button class="btn ghost" data-action="pause" data-focus="main">⏸ Pause</button>` : `<button class="btn primary" data-action="resume" data-focus="main">▶ Reprendre</button>`}
           <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
           <button class="btn ghost" data-action="skip">⏭ Passer</button>
         </div>`;
@@ -1260,7 +1300,7 @@ function renderPlayer(){
       centerHtml = `<div class="big-emoji">${esc(st.exo.icon)}</div><div class="reps-target">${esc(st.exo.val)} <span>reps</span></div>`;
       controlsHtml = `
         <div class="controls">
-          <button class="btn primary" data-action="completeReps">✓ Série terminée</button>
+          <button class="btn primary" data-action="completeReps" data-focus="main">✓ Série terminée</button>
           <button class="btn ghost" data-action="skip">⏭ Passer</button>
         </div>`;
     }
@@ -1272,7 +1312,7 @@ function renderPlayer(){
         <button class="btn ghost sm" data-action="restPlus">+15s</button>
       </div>
       <div class="controls">
-        ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">▶ Reprendre</button>`}
+        ${player.running ? `<button class="btn ghost" data-action="pause" data-focus="main">⏸ Pause</button>` : `<button class="btn primary" data-action="resume" data-focus="main">▶ Reprendre</button>`}
         <button class="btn ghost" data-action="resetPhase">⟲ Reset</button>
         <button class="btn ghost" data-action="skip">⏭ Passer le repos</button>
       </div>`;
@@ -1281,7 +1321,7 @@ function renderPlayer(){
   return `
   <div class="player" id="playerRoot">
     <div class="row between" style="margin-bottom:6px;">
-      <button class="icon-btn" data-action="exitPlayer">✕</button>
+      <button class="icon-btn" data-action="exitPlayer" title="Quitter" aria-label="Quitter la séance">✕</button>
       <span class="pill">${esc(s.name)}</span>
       <span class="pill">${player.stepIdx+1}/${totalSteps}</span>
     </div>
