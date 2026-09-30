@@ -389,11 +389,15 @@ function defaultSessions(){
 }
 
 /* ---------------- VALIDATION ---------------- */
-// Stored sessions are cleaned at load: an entry the app cannot display (a null
+// Everything read from localStorage or pasted in « Importer » goes through the
+// cleaners below. At load (lenient) an entry the app cannot display (a null
 // left by an old bug, a session without exercises...) is dropped instead of
-// breaking every render, numbers are bounded, and every session gets a unique
-// id (sessions are referenced by id, never by their position in the list).
+// breaking every render; an import (strict) is refused as a whole, naming the
+// first bad entry. Numbers are bounded, texts shortened, and every session
+// gets a unique id (sessions are referenced by id, never by their position).
 const MAX_SETS = 99, MAX_VAL = 9999, MAX_REST = 3600;
+const DEFAULT_SETTINGS = {sound:true, vibrate:true};
+const DEFAULT_EQUIPMENT = {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false};
 function uid(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 function isObj(v){ return !!v && typeof v==='object' && !Array.isArray(v); }
 function fail(msg){ throw new Error(msg); }
@@ -403,13 +407,22 @@ function cleanInt(v, def, min, max){
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : def;
 }
 function cleanIcon(v){ const s = typeof v==='string' ? v.trim() : ''; return s && s.length<=16 ? s : '⭐'; }
-function cleanList(arr, fn){
-  const out = [];
-  (Array.isArray(arr) ? arr : []).forEach(x=>{ try{ out.push(fn(x)); }catch(e){} });
+function cleanTexts(v, maxItems, maxLen){ return Array.isArray(v) ? v.map(x=>cleanText(x, maxLen)).filter(Boolean).slice(0, maxItems) : []; }
+function cleanFlags(v, defaults){
+  const out = {};
+  Object.keys(defaults).forEach(k=>{ out[k] = isObj(v) && typeof v[k]==='boolean' ? v[k] : defaults[k]; });
   return out;
 }
-function uniqueIds(list, prefix){
-  const seen = new Set();
+function cleanList(arr, fn, strict, label){
+  const out = [];
+  (Array.isArray(arr) ? arr : []).forEach((x,i)=>{
+    try{ out.push(fn(x, strict)); }
+    catch(e){ if(strict) fail(label+' n°'+(i+1)+' : '+e.message); }
+  });
+  return out;
+}
+function uniqueIds(list, prefix, taken){
+  const seen = new Set(taken);
   list.forEach(x=>{ if(!x.id || seen.has(x.id)) x.id = uid(prefix); seen.add(x.id); });
   return list;
 }
@@ -421,12 +434,63 @@ function cleanExo(e){
   return {libId:cleanText(e.libId, 100), name, icon:cleanIcon(e.icon), type,
     sets:cleanInt(e.sets, 3, 1, MAX_SETS), val:cleanInt(e.val, type==='time'?30:12, 1, MAX_VAL), rest:cleanInt(e.rest, 45, 0, MAX_REST)};
 }
-function cleanSession(s){
+function cleanSession(s, strict){
   if(!isObj(s)) fail('format illisible');
   if(!Array.isArray(s.exos)) fail("liste d'exercices manquante");
-  const exos = cleanList(s.exos, cleanExo);
+  if(strict && s.exos.length>100) fail('plus de 100 exercices');
+  const exos = cleanList(s.exos, cleanExo, strict, 'exercice');
   if(!exos.length) fail('aucun exercice');
   return {id:cleanText(s.id, 100), name:cleanText(s.name, 200) || 'Séance sans nom', exos};
+}
+function cleanCustomExo(e){
+  const x = cleanExo(e);
+  const out = {id:cleanText(e.id, 100), name:x.name, cat:cleanText(e.cat, 60) || 'Personnalisé', type:x.type, icon:x.icon, sets:x.sets, val:x.val, rest:x.rest, custom:true};
+  // Optional extras a shared program may carry (all rendered escaped).
+  if(typeof e.equip==='string' && Object.prototype.hasOwnProperty.call(EQUIPMENT_LABELS, e.equip)) out.equip = e.equip;
+  const level = cleanText(e.level, 40), bandTip = cleanText(e.bandTip, 1000);
+  const muscles = cleanTexts(e.muscles, 12, 60), tips = cleanTexts(e.tips, 12, 1000);
+  if(level) out.level = level;
+  if(bandTip) out.bandTip = bandTip;
+  if(muscles.length) out.muscles = muscles;
+  if(tips.length) out.tips = tips;
+  return out;
+}
+function cleanLogExo(e){
+  if(!isObj(e)) fail('format illisible');
+  return {name:cleanText(e.name, 200) || 'Exercice', icon:cleanIcon(e.icon), type:e.type==='time' ? 'time' : 'reps',
+    plannedSets:cleanInt(e.plannedSets, 0, 0, MAX_VAL), plannedVal:cleanInt(e.plannedVal, 0, 0, MAX_VAL), completed:e.completed===true,
+    actualSets:cleanInt(e.actualSets, 0, 0, MAX_VAL), actualVal:cleanInt(e.actualVal, 0, 0, MAX_VAL)};
+}
+function cleanLog(l, strict){
+  if(!isObj(l)) fail('format illisible');
+  if(!Array.isArray(l.exercises)) fail("liste d'exercices manquante");
+  if(strict && l.exercises.length>100) fail('plus de 100 exercices');
+  return {id:cleanText(l.id, 100), sessionName:cleanText(l.sessionName, 200) || 'Séance', dateISO:cleanText(l.dateISO, 40),
+    exercises:cleanList(l.exercises, cleanLogExo, strict, 'exercice')};
+}
+function cleanSessions(v, strict){ return uniqueIds(cleanList(v, cleanSession, strict, 'séance'), 's_', []); }
+function cleanCustomExos(v, strict){ return uniqueIds(cleanList(v, cleanCustomExo, strict, 'exercice personnalisé'), 'custom_', EXO_LIB.map(e=>e.id)); }
+function cleanLogs(v, strict){ return cleanList(v, cleanLog, strict, 'entrée du suivi'); }
+// An export, or the copy kept to undo an import: only the sections present are returned.
+function cleanData(data, strict){
+  const none = "ce texte ne contient pas de données de l'app";
+  if(!isObj(data)) fail(none);
+  const out = {};
+  [['sessions', cleanSessions, 200], ['customExos', cleanCustomExos, 500], ['logs', cleanLogs, 10000]].forEach(([k, clean, max])=>{
+    const v = data[k];
+    if(v==null) return;
+    if(!Array.isArray(v)){ if(strict) fail('« '+k+' » doit être une liste'); return; }
+    if(strict && v.length>max) fail("trop d'éléments dans « "+k+' » ('+v.length+', maximum '+max+')');
+    out[k] = clean(v, strict);
+  });
+  [['settings', DEFAULT_SETTINGS], ['equipment', DEFAULT_EQUIPMENT]].forEach(([k, defaults])=>{
+    const v = data[k];
+    if(v==null) return;
+    if(!isObj(v)){ if(strict) fail('« '+k+' » doit être un objet'); return; }
+    out[k] = cleanFlags(v, defaults);
+  });
+  if(!Object.keys(out).length) fail(none);
+  return out;
 }
 
 /* ---------------- STORAGE ---------------- */
@@ -435,30 +499,49 @@ const LS_CUSTOM = 'cal_custom_exos_v1';
 const LS_SETTINGS = 'cal_settings_v1';
 const LS_EQUIPMENT = 'cal_equipment_v1';
 const LS_LOGS = 'cal_logs_v1';
+const LS_IMPORT_BACKUP = 'cal_import_backup_v1'; // data as it was before the last import
 
-function loadSessions(){
+function loadList(key, clean, fallback){
   let raw = null, parsed = null;
-  try{ raw = localStorage.getItem(LS_SESSIONS); parsed = raw ? JSON.parse(raw) : null; }catch(e){}
-  if(!Array.isArray(parsed)){
+  try{ raw = localStorage.getItem(key); parsed = raw ? JSON.parse(raw) : null; }catch(e){}
+  if(!Array.isArray(parsed)) return fallback();
+  const list = clean(parsed, false);
+  if(JSON.stringify(list)!==raw){ try{ localStorage.setItem(key, JSON.stringify(list)); }catch(e){} } // keep the repair
+  return list;
+}
+function loadFlags(key, defaults){ try{ return cleanFlags(JSON.parse(localStorage.getItem(key)||'{}'), defaults); }catch(e){ return cleanFlags(null, defaults); } }
+function loadSessions(){
+  return loadList(LS_SESSIONS, cleanSessions, ()=>{
     const d = defaultSessions();
     saveSessions(d);
     return d;
-  }
-  const clean = uniqueIds(cleanList(parsed, cleanSession), 's_');
-  if(JSON.stringify(clean)!==raw) saveSessions(clean); // keep the repair
-  return clean;
+  });
 }
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
-function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
+function loadCustomExos(){ return loadList(LS_CUSTOM, cleanCustomExos, ()=>[]); }
 function saveCustomExos(a){ try{ localStorage.setItem(LS_CUSTOM, JSON.stringify(a)); }catch(e){} }
-function loadSettings(){ try{ return Object.assign({sound:true, vibrate:true}, JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}')); }catch(e){ return {sound:true, vibrate:true}; } }
+function loadSettings(){ return loadFlags(LS_SETTINGS, DEFAULT_SETTINGS); }
 function saveSettings(s){ try{ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }catch(e){} }
-function loadEquipment(){ try{ return Object.assign({pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}, JSON.parse(localStorage.getItem(LS_EQUIPMENT)||'{}')); }catch(e){ return {pullupBar:false, dipBar:false, chair:false, bench:false, bands:false}; } }
+function loadEquipment(){ return loadFlags(LS_EQUIPMENT, DEFAULT_EQUIPMENT); }
 function saveEquipment(eq){ try{ localStorage.setItem(LS_EQUIPMENT, JSON.stringify(eq)); }catch(e){} }
-function loadLogs(){ try{ return JSON.parse(localStorage.getItem(LS_LOGS)||'[]'); }catch(e){ return []; } }
+function loadLogs(){ return loadList(LS_LOGS, cleanLogs, ()=>[]); }
 function saveLogs(l){ try{ localStorage.setItem(LS_LOGS, JSON.stringify(l)); }catch(e){} }
+function loadImportBackup(){ try{ const b = JSON.parse(localStorage.getItem(LS_IMPORT_BACKUP)||'null'); return isObj(b) ? b : null; }catch(e){ return null; } }
+function saveImportBackup(b){
+  importBackup = b;
+  try{ if(b) localStorage.setItem(LS_IMPORT_BACKUP, JSON.stringify(b)); else localStorage.removeItem(LS_IMPORT_BACKUP); }catch(e){}
+}
 function gatherAllData(){
   return { app:'calisthenie-maison', version:1, exportedAt:new Date().toISOString(), sessions, customExos, settings, equipment, logs };
+}
+// Replaces the sections present in already cleaned data (import or undo).
+function applyData(d){
+  if(d.sessions){ sessions = d.sessions; saveSessions(sessions); }
+  if(d.customExos){ customExos = d.customExos; saveCustomExos(customExos); }
+  if(d.settings){ settings = d.settings; saveSettings(settings); }
+  if(d.equipment){ equipment = d.equipment; saveEquipment(equipment); }
+  if(d.logs){ logs = d.logs; saveLogs(logs); }
+  builderDraft = null; sheet = null; view = 'home';
 }
 
 /* ---------------- STATE ---------------- */
@@ -467,6 +550,7 @@ let customExos = loadCustomExos();
 let settings = loadSettings();
 let equipment = loadEquipment();
 let logs = loadLogs();
+let importBackup = loadImportBackup(); // offers « Annuler l'import » until dismissed
 let view = 'home'; // home | builder | library | tracking | player
 let builderDraft = null; // session being built (same id as the session it edits)
 let editingIndex = null; // index of exo being edited in a sheet
@@ -522,19 +606,50 @@ function vibrate(pattern){
 /* ---------------- RENDER ROOT ---------------- */
 function render(){
   const app = document.getElementById('app');
-  let html = '';
-  if(view === 'player' && player){
-    html = renderPlayer();
-  } else {
-    html = renderHeader() + (
-      view === 'home' ? renderHome() :
-      view === 'builder' ? renderBuilder() :
-      view === 'library' ? renderLibrary() :
-      view === 'tracking' ? renderTracking() : ''
-    );
+  try{
+    let html = '';
+    if(view === 'player' && player){
+      html = renderPlayer();
+    } else {
+      html = renderHeader() + (
+        view === 'home' ? renderHome() :
+        view === 'builder' ? renderBuilder() :
+        view === 'library' ? renderLibrary() :
+        view === 'tracking' ? renderTracking() : ''
+      );
+    }
+    app.innerHTML = html + renderSheet();
+    attachEvents();
+  }catch(err){
+    renderRecovery(app, err);
   }
-  app.innerHTML = html + renderSheet();
-  attachEvents();
+}
+
+// Last resort instead of a blank page: explain, offer a way out, and show the
+// data so it can be copied before resetting anything.
+function renderRecovery(app, err){
+  try{ console.error(err); }catch(e){}
+  let dump = '';
+  try{ dump = JSON.stringify(gatherAllData(), null, 2); }catch(e){}
+  app.innerHTML = `<div class="card" role="alert" style="margin-top:20px;">
+    <h2>😵 Oups, l'affichage a planté</h2>
+    <p>Tes données sont toujours sur cet appareil. Reviens à l'accueil ; si le problème revient, copie tes données ci-dessous (pour les réimporter plus tard) puis réinitialise l'app.</p>
+    <p style="font-size:12px;">Détail : ${esc(err && err.message || err)}</p>
+    <button class="btn primary block" style="margin-top:12px;" id="recoverHome">↩ Revenir à l'accueil</button>
+    <details style="margin-top:12px;"><summary style="cursor:pointer;color:var(--muted);font-size:13px;">📤 Voir mes données (à copier)</summary>
+      <textarea readonly style="width:100%;min-height:160px;margin-top:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${esc(dump)}</textarea>
+    </details>
+    <button class="btn danger block" style="margin-top:12px;" id="recoverReset">Réinitialiser l'app</button>
+  </div>`;
+  document.getElementById('recoverHome').onclick = ()=>{
+    if(player){ clearTick(); player = null; }
+    view = 'home'; sheet = null; builderDraft = null; render();
+  };
+  document.getElementById('recoverReset').onclick = ()=>{
+    if(!confirm("Effacer toutes les données de l'app sur cet appareil (séances, exercices perso, équipement, suivi) ?")) return;
+    [LS_SESSIONS, LS_CUSTOM, LS_SETTINGS, LS_EQUIPMENT, LS_LOGS, LS_IMPORT_BACKUP].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+    location.reload();
+  };
 }
 
 function renderHeader(){
@@ -558,7 +673,14 @@ function renderHeader(){
 
 /* ---------------- HOME ---------------- */
 function renderHome(){
-  const newBtn = `<button class="btn primary block" data-action="newSession" style="margin-bottom:16px;">+ Nouvelle séance</button>`;
+  const undo = importBackup ? `<div class="card tight" style="border-color:var(--accent2);">
+    <p style="color:var(--text);margin:0 0 10px;">📥 Données importées. Pas ce que tu voulais ?</p>
+    <div class="row">
+      <button class="btn sm ghost block" data-action="keepImport">✓ Garder</button>
+      <button class="btn sm accent block" data-action="undoImport">↩ Annuler l'import</button>
+    </div>
+  </div>` : '';
+  const newBtn = undo + `<button class="btn primary block" data-action="newSession" style="margin-bottom:16px;">+ Nouvelle séance</button>`;
   if(sessions.length===0){
     return newBtn + `<div class="empty"><div class="big">🧘</div><h3>Aucune séance</h3><p>Crée ta première séance avec le bouton ci-dessus.</p></div>`;
   }
@@ -574,20 +696,20 @@ function renderHome(){
     <div class="card">
       <div class="row between">
         <div>
-          <h2>${escapeHtml(s.name)}</h2>
-          <p>${s.exos.length} exercices · ${totalSets} séries · ~${estMin} min</p>
+          <h2>${esc(s.name)}</h2>
+          <p>${s.exos.length} exercices · ${esc(totalSets)} séries · ~${esc(estMin)} min</p>
         </div>
         <div class="row">
-          <button class="icon-btn" data-edit-session="${escapeAttr(s.id)}" title="Modifier">✏️</button>
-          <button class="icon-btn" data-del-session="${escapeAttr(s.id)}" title="Supprimer">🗑️</button>
+          <button class="icon-btn" data-edit-session="${esc(s.id)}" title="Modifier">✏️</button>
+          <button class="icon-btn" data-del-session="${esc(s.id)}" title="Supprimer">🗑️</button>
         </div>
       </div>
       <div class="row wrap" style="margin-top:10px;">
-        ${s.exos.slice(0,5).map(e=>`<span class="pill">${e.icon} ${escapeHtml(e.name)}</span>`).join('')}
+        ${s.exos.slice(0,5).map(e=>`<span class="pill">${esc(e.icon)} ${esc(e.name)}</span>`).join('')}
         ${s.exos.length>5?`<span class="pill">+${s.exos.length-5}</span>`:''}
       </div>
-      ${muscles.length ? `<p style="margin-top:8px;font-size:12px;">🎯 <b style="color:var(--text);font-weight:600;">Muscles travaillés :</b> ${muscles.map(m=>escapeHtml(m)).join(', ')}</p>` : ''}
-      <button class="btn primary block" style="margin-top:12px;" data-start-session="${escapeAttr(s.id)}">▶ Démarrer</button>
+      ${muscles.length ? `<p style="margin-top:8px;font-size:12px;">🎯 <b style="color:var(--text);font-weight:600;">Muscles travaillés :</b> ${muscles.map(m=>esc(m)).join(', ')}</p>` : ''}
+      <button class="btn primary block" style="margin-top:12px;" data-start-session="${esc(s.id)}">▶ Démarrer</button>
     </div>`;
   }).join('') + `
   <div class="card tight" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -613,7 +735,7 @@ function renderBuilder(){
   <div class="card">
     <label class="field" style="margin-bottom:0;">
       <span>Nom de la séance</span>
-      <input type="text" id="sessionName" value="${escapeAttr(d.name)}">
+      <input type="text" id="sessionName" value="${esc(d.name)}">
     </label>
     <p style="margin-top:10px;">💡 Le temps de repos se règle exercice par exercice ci-dessous.</p>
   </div>
@@ -632,19 +754,19 @@ function renderBuilder(){
 }
 function renderBuilderExo(e,i){
   const libExo = getExoById(e.libId);
-  const equipNote = (libExo && libExo.equip) ? ` · 🎒 ${EQUIPMENT_LABELS[libExo.equip]}` : '';
+  const equipNote = (libExo && libExo.equip) ? ` · 🎒 ${esc(EQUIPMENT_LABELS[libExo.equip])}` : '';
   return `
   <div class="exo-item" style="flex-direction:column;align-items:stretch;">
     <div class="row between">
       <div class="row" style="gap:10px;min-width:0;">
-        <div class="emoji">${e.icon}</div>
+        <div class="emoji">${esc(e.icon)}</div>
         <div class="meta">
-          <b>${escapeHtml(e.name)}</b>
+          <b>${esc(e.name)}</b>
           <small>${e.type==='time' ? 'Basé sur le temps' : 'Basé sur les répétitions'}${equipNote}</small>
         </div>
       </div>
       <div class="row" style="gap:6px;flex-shrink:0;">
-        <button class="icon-btn" data-tips="${e.libId}" title="Conseils">💡</button>
+        <button class="icon-btn" data-tips="${esc(e.libId)}" title="Conseils">💡</button>
         <button class="icon-btn" data-remove-exo="${i}">✕</button>
       </div>
     </div>
@@ -653,7 +775,7 @@ function renderBuilderExo(e,i){
         <span class="stepper-label">Séries</span>
         <div class="stepper" title="Séries">
           <button data-stepper="sets" data-i="${i}" data-d="-1">−</button>
-          <span>${e.sets}×</span>
+          <span>${esc(e.sets)}×</span>
           <button data-stepper="sets" data-i="${i}" data-d="1">+</button>
         </div>
       </div>
@@ -661,7 +783,7 @@ function renderBuilderExo(e,i){
         <span class="stepper-label">${e.type==='time'?'Secondes':'Répétitions'}</span>
         <div class="stepper" title="${e.type==='time'?'Secondes':'Répétitions'}">
           <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?-5:-1}">−</button>
-          <span>${e.val}</span>
+          <span>${esc(e.val)}</span>
           <button data-stepper="val" data-i="${i}" data-d="${e.type==='time'?5:1}">+</button>
         </div>
       </div>
@@ -669,7 +791,7 @@ function renderBuilderExo(e,i){
         <span class="stepper-label">Repos (s)</span>
         <div class="stepper" title="Repos entre les séries">
           <button data-stepper="rest" data-i="${i}" data-d="-15">−</button>
-          <span>${e.rest}</span>
+          <span>${esc(e.rest)}</span>
           <button data-stepper="rest" data-i="${i}" data-d="15">+</button>
         </div>
       </div>
@@ -679,26 +801,26 @@ function renderBuilderExo(e,i){
 
 /* ---------------- LIBRARY ---------------- */
 function renderLibrary(){
-  const cats = {};
+  const cats = Object.create(null);
   allExoLibrary().forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
   let html = `<button class="btn ghost block" data-action="openEquipment" style="margin-bottom:10px;">🎒 Gérer mon équipement</button>
   <button class="btn accent block" data-action="openCustomExo" style="margin-bottom:14px;">+ Créer un exercice personnalisé</button>`;
   Object.keys(cats).forEach(cat=>{
-    html += `<div class="cat-title">${escapeHtml(cat)}</div>`;
+    html += `<div class="cat-title">${esc(cat)}</div>`;
     cats[cat].forEach(e=>{
       const locked = e.equip && !equipment[e.equip];
-      const levelNote = e.level ? ` · ${escapeHtml(e.level)}` : '';
+      const levelNote = e.level ? ` · ${esc(e.level)}` : '';
       const bandNote = e.bandTip ? ' · 🎗️ élastique en option' : '';
-      const musclesNote = (e.muscles&&e.muscles.length) ? `<small style="display:block;color:var(--muted);">🎯 ${e.muscles.map(m=>escapeHtml(m)).join(' · ')}</small>` : '';
-      html += `<div class="card tight lib-item" style="margin-bottom:8px;${locked?'opacity:.5;':''}" data-tips="${e.id}">
-        <span class="emoji">${e.icon}</span>
+      const musclesNote = (e.muscles&&e.muscles.length) ? `<small style="display:block;color:var(--muted);">🎯 ${e.muscles.map(m=>esc(m)).join(' · ')}</small>` : '';
+      html += `<div class="card tight lib-item" style="margin-bottom:8px;${locked?'opacity:.5;':''}" data-tips="${esc(e.id)}">
+        <span class="emoji">${esc(e.icon)}</span>
         <div style="flex:1;">
-          <b>${escapeHtml(e.name)}</b>
-          <small>${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${e.sets}×${e.val}${e.type==='time'?'s':''}${levelNote}${bandNote}${locked?` · 🔒 ${EQUIPMENT_LABELS[e.equip]}`:''}</small>
+          <b>${esc(e.name)}</b>
+          <small>${e.type==='time'?'Basé sur le temps':'Basé sur les répétitions'} · défaut ${esc(e.sets)}×${esc(e.val)}${e.type==='time'?'s':''}${levelNote}${bandNote}${locked?` · 🔒 ${esc(EQUIPMENT_LABELS[e.equip])}`:''}</small>
           ${musclesNote}
         </div>
         <span class="pill">${locked?'🔒':'💡'}</span>
-        ${e.custom? `<button class="icon-btn" data-del-custom="${e.id}">🗑️</button>` : ''}
+        ${e.custom? `<button class="icon-btn" data-del-custom="${esc(e.id)}">🗑️</button>` : ''}
       </div>`;
     });
   });
@@ -707,8 +829,9 @@ function renderLibrary(){
 
 /* ---------------- TRACKING ---------------- */
 function formatLogDate(iso){
+  const d = new Date(iso);
+  if(isNaN(d)) return String(iso||'');
   try{
-    const d = new Date(iso);
     const weekday = d.toLocaleDateString('fr-FR', {weekday:'long'});
     const dateStr = d.toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
     const timeStr = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
@@ -724,20 +847,20 @@ function renderTracking(){
     const realIdx = logs.length-1-idx;
     const exoRows = log.exercises.map(ex=>{
       const unit = ex.type==='time' ? 's' : '';
-      const plannedStr = `${ex.plannedSets}×${ex.plannedVal}${unit}`;
+      const plannedStr = `${esc(ex.plannedSets)}×${esc(ex.plannedVal)}${unit}`;
       const statusHtml = ex.completed
         ? `<span class="pill" style="color:var(--accent2);">✓ ${plannedStr}</span>`
-        : `<span class="pill" style="color:var(--accent);">${ex.actualSets}×${ex.actualVal}${unit} <span style="color:var(--muted);">(obj. ${plannedStr})</span></span>`;
+        : `<span class="pill" style="color:var(--accent);">${esc(ex.actualSets)}×${esc(ex.actualVal)}${unit} <span style="color:var(--muted);">(obj. ${plannedStr})</span></span>`;
       return `<div class="row between" style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);">
-        <span>${ex.icon} ${escapeHtml(ex.name)}</span>
+        <span>${esc(ex.icon)} ${esc(ex.name)}</span>
         ${statusHtml}
       </div>`;
     }).join('');
     return `<div class="card">
       <div class="row between">
         <div>
-          <h2>${escapeHtml(log.sessionName)}</h2>
-          <p>${formatLogDate(log.dateISO)}</p>
+          <h2>${esc(log.sessionName)}</h2>
+          <p>${esc(formatLogDate(log.dateISO))}</p>
         </div>
         <button class="icon-btn" data-del-log="${realIdx}" title="Supprimer">🗑️</button>
       </div>
@@ -751,16 +874,16 @@ function renderTracking(){
 function renderSheet(){
   if(!sheet) return '';
   if(sheet.type==='addExo'){
-    const cats = {};
+    const cats = Object.create(null);
     availableExoLibrary().forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
     const lockedCount = allExoLibrary().length - availableExoLibrary().length;
     let items = '';
     Object.keys(cats).forEach(cat=>{
-      items += `<div class="cat-title">${escapeHtml(cat)}</div>`;
+      items += `<div class="cat-title">${esc(cat)}</div>`;
       cats[cat].forEach(e=>{
-        items += `<div class="lib-item" data-pick-exo="${e.id}">
-          <span class="emoji">${e.icon}</span>
-          <div><b>${escapeHtml(e.name)}</b><small>${e.type==='time'?e.val+'s':e.val+' reps'} · ${e.sets} séries</small></div>
+        items += `<div class="lib-item" data-pick-exo="${esc(e.id)}">
+          <span class="emoji">${esc(e.icon)}</span>
+          <div><b>${esc(e.name)}</b><small>${esc(e.val)}${e.type==='time'?'s':' reps'} · ${esc(e.sets)} séries</small></div>
         </div>`;
       });
     });
@@ -797,18 +920,18 @@ function renderSheet(){
     const tips = getTipsFor(sheet.exoId);
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <div class="row" style="margin-bottom:4px;">
-        <span style="font-size:30px;">${exo.icon}</span>
-        <h3 style="margin:0;">${escapeHtml(exo.name)}</h3>
+        <span style="font-size:30px;">${esc(exo.icon)}</span>
+        <h3 style="margin:0;">${esc(exo.name)}</h3>
       </div>
       <p style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;">
-        ${exo.level ? `<span class="pill">Niveau : ${escapeHtml(exo.level)}</span>` : ''}
-        ${(exo.muscles||[]).map(m=>`<span class="pill">🎯 ${escapeHtml(m)}</span>`).join('')}
+        ${exo.level ? `<span class="pill">Niveau : ${esc(exo.level)}</span>` : ''}
+        ${(exo.muscles||[]).map(m=>`<span class="pill">🎯 ${esc(m)}</span>`).join('')}
       </p>
       <p style="margin-bottom:16px;">Bonne exécution &amp; préservation des articulations</p>
-      <ul class="tips-list">${tips.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ul>
+      <ul class="tips-list">${tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
       ${exo.bandTip ? `<div class="card tight" style="margin-top:16px;border-color:var(--accent2);">
         <b style="color:var(--accent2);">🎗️ Intensifier avec un élastique</b>
-        <p style="margin-top:4px;color:var(--text);font-size:13px;">${escapeHtml(exo.bandTip)}</p>
+        <p style="margin-top:4px;color:var(--text);font-size:13px;">${esc(exo.bandTip)}</p>
         ${!equipment.bands ? `<button class="tips-btn" data-action="openEquipment" style="margin-top:8px;">🎒 Activer "Élastiques" dans mon équipement</button>` : ''}
       </div>` : ''}
       <button class="btn ghost block" style="margin-top:18px;" data-action="closeSheet">Fermer</button>
@@ -837,7 +960,7 @@ function renderSheet(){
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <h3>📤 Exporter mes données</h3>
       <p style="margin-bottom:10px;">Copie ce texte et garde-le quelque part (note, email, fichier...) pour le récupérer plus tard ou sur un autre appareil via "Importer".</p>
-      <textarea readonly id="exportArea" style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${escapeHtml(json)}</textarea>
+      <textarea readonly id="exportArea" style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${esc(json)}</textarea>
       <div class="row" style="margin-top:12px;gap:10px;">
         <button class="btn ghost block" data-action="closeSheet">Fermer</button>
         <button class="btn primary block" data-action="copyExport">📋 Copier</button>
@@ -847,8 +970,9 @@ function renderSheet(){
   if(sheet.type==='import'){
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <h3>📥 Importer des données</h3>
-      <p style="margin-bottom:10px;">Colle ici le texte exporté depuis un autre appareil. <b>Cela remplacera tes séances, exercices personnalisés, équipement et suivi actuels.</b></p>
-      <textarea id="importArea" placeholder="Colle le JSON exporté ici..." style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;"></textarea>
+      <p style="margin-bottom:10px;">Colle ici le texte exporté depuis un autre appareil. <b>Cela remplacera tes séances, exercices personnalisés, équipement et suivi actuels.</b> Tu pourras annuler l'import juste après.</p>
+      <textarea id="importArea" placeholder="Colle le JSON exporté ici..." style="width:100%;min-height:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-family:monospace;font-size:11px;">${esc(sheet.text)}</textarea>
+      ${sheet.error ? `<p role="alert" style="color:var(--danger);margin-top:8px;">${esc(sheet.error)}</p>` : ''}
       <div class="row" style="margin-top:12px;gap:10px;">
         <button class="btn ghost block" data-action="closeSheet">Annuler</button>
         <button class="btn primary block" data-action="doImport">📥 Importer</button>
@@ -1043,8 +1167,8 @@ function renderReviewExo(e,i){
   const unit = e.type==='time' ? 's' : '';
   return `<div class="card tight" style="margin-bottom:10px;">
     <div class="row between">
-      <b>${e.icon} ${escapeHtml(e.name)}</b>
-      <span class="pill">Objectif ${e.sets}×${e.val}${unit}</span>
+      <b>${esc(e.icon)} ${esc(e.name)}</b>
+      <span class="pill">Objectif ${esc(e.sets)}×${esc(e.val)}${unit}</span>
     </div>
     <div class="row" style="margin-top:10px;gap:8px;">
       <button class="btn sm ${ans.completed?'accent':'ghost'}" data-review-done="${i}" data-val="1">✓ Réussi</button>
@@ -1053,10 +1177,10 @@ function renderReviewExo(e,i){
     ${!ans.completed ? `
     <div class="row" style="margin-top:10px;gap:10px;">
       <label class="field" style="flex:1;margin-bottom:0;"><span>Séries réussies</span>
-        <input type="number" min="0" data-review-field="sets" data-i="${i}" value="${ans.actualSets}">
+        <input type="number" min="0" data-review-field="sets" data-i="${i}" value="${esc(ans.actualSets)}">
       </label>
       <label class="field" style="flex:1;margin-bottom:0;"><span>${e.type==='time'?'Temps max (s)':'Reps max'}</span>
-        <input type="number" min="0" data-review-field="val" data-i="${i}" value="${ans.actualVal}">
+        <input type="number" min="0" data-review-field="val" data-i="${i}" value="${esc(ans.actualVal)}">
       </label>
     </div>` : ''}
   </div>`;
@@ -1068,7 +1192,7 @@ function renderPlayer(){
     return `<div class="player" style="text-align:left;padding-top:10px;">
       <div class="big-emoji" style="text-align:center;">🎉</div>
       <h1 style="text-align:center;">Séance terminée !</h1>
-      <p style="text-align:center;margin-bottom:20px;">${escapeHtml(s.name)} — comment ça s'est passé ?</p>
+      <p style="text-align:center;margin-bottom:20px;">${esc(s.name)} — comment ça s'est passé ?</p>
       ${s.exos.map((e,i)=>renderReviewExo(e,i)).join('')}
       <div class="row" style="margin-top:6px;gap:10px;">
         <button class="btn ghost block" data-action="skipReview">Ignorer</button>
@@ -1084,7 +1208,7 @@ function renderPlayer(){
   if(player.phase==='rest'){
     if(nextStep){
       const isNewExo = nextStep.exoIndex !== st.exoIndex;
-      nextLabel = isNewExo ? `Prochain : <b>${nextStep.exo.icon} ${escapeHtml(nextStep.exo.name)}</b>` : `Série suivante : <b>${nextStep.exo.icon} ${escapeHtml(nextStep.exo.name)}</b>`;
+      nextLabel = isNewExo ? `Prochain : <b>${esc(nextStep.exo.icon)} ${esc(nextStep.exo.name)}</b>` : `Série suivante : <b>${esc(nextStep.exo.icon)} ${esc(nextStep.exo.name)}</b>`;
     } else {
       nextLabel = `Dernière ligne droite ✨`;
     }
@@ -1095,7 +1219,7 @@ function renderPlayer(){
 
   if(player.phase==='work'){
     if(st.exo.type==='time'){
-      centerHtml = `<div class="big-emoji">${st.exo.icon}</div><div class="timer glow-work">${formatTime(player.remaining)}</div>`;
+      centerHtml = `<div class="big-emoji">${esc(st.exo.icon)}</div><div class="timer glow-work">${formatTime(player.remaining)}</div>`;
       controlsHtml = `
         <div class="controls">
           ${player.running ? `<button class="btn ghost" data-action="pause">⏸ Pause</button>` : `<button class="btn primary" data-action="resume">▶ Reprendre</button>`}
@@ -1103,7 +1227,7 @@ function renderPlayer(){
           <button class="btn ghost" data-action="skip">⏭ Passer</button>
         </div>`;
     } else {
-      centerHtml = `<div class="big-emoji">${st.exo.icon}</div><div class="reps-target">${st.exo.val} <span>reps</span></div>`;
+      centerHtml = `<div class="big-emoji">${esc(st.exo.icon)}</div><div class="reps-target">${esc(st.exo.val)} <span>reps</span></div>`;
       controlsHtml = `
         <div class="controls">
           <button class="btn primary" data-action="completeReps">✓ Série terminée</button>
@@ -1128,14 +1252,14 @@ function renderPlayer(){
   <div class="player" id="playerRoot">
     <div class="row between" style="margin-bottom:6px;">
       <button class="icon-btn" data-action="exitPlayer">✕</button>
-      <span class="pill">${escapeHtml(s.name)}</span>
+      <span class="pill">${esc(s.name)}</span>
       <span class="pill">${player.stepIdx+1}/${totalSteps}</span>
     </div>
     <div class="progress-outer"><div class="progress-inner" style="width:${progressPct}%"></div></div>
     <span class="phase-tag ${player.phase}">${player.phase==='work'?'EN COURS':'REPOS'}</span>
-    <div class="exo-name">${escapeHtml(st.exo.name)}</div>
-    <div class="set-count">Série ${st.setIndex+1} / ${st.exo.sets}</div>
-    <button class="tips-btn" data-tips="${st.exo.libId}">💡 Conseils &amp; sécurité</button>
+    <div class="exo-name">${esc(st.exo.name)}</div>
+    <div class="set-count">Série ${st.setIndex+1} / ${esc(st.exo.sets)}</div>
+    <button class="tips-btn" data-tips="${esc(st.exo.libId)}">💡 Conseils &amp; sécurité</button>
     ${centerHtml}
     ${controlsHtml}
     ${nextLabel? `<div class="next-preview">${nextLabel}</div>` : ''}
@@ -1158,8 +1282,9 @@ function formatTime(sec){
 }
 
 /* ---------------- HELPERS ---------------- */
-function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function escapeAttr(str){ return escapeHtml(str); }
+// Every stored or imported value interpolated in the HTML goes through esc(),
+// in text and in attributes alike.
+function esc(v){ return String(v==null ? '' : v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ---------------- EVENTS ---------------- */
 function attachEvents(){
@@ -1237,16 +1362,29 @@ function attachEvents(){
       const raw = ta ? ta.value.trim() : '';
       if(!raw){ toast("Colle d'abord un texte exporté."); return; }
       let data;
-      try{ data = JSON.parse(raw); }catch(e){ toast('Texte invalide : vérifie que tu as bien tout copié.'); return; }
-      if(!data || typeof data!=='object'){ toast('Format invalide.'); return; }
+      try{
+        try{ data = JSON.parse(raw); }catch(e){ fail('texte illisible, vérifie que tu as bien tout copié'); }
+        data = cleanData(data, true);
+      }catch(e){
+        // Keep the pasted text and say why, instead of a toast that vanishes.
+        sheet = {type:'import', text:raw, error:'Import refusé : '+e.message+". Tes données n'ont pas été modifiées."};
+        render(); return;
+      }
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
-      if(Array.isArray(data.sessions)){ sessions = uniqueIds(cleanList(data.sessions, cleanSession), 's_'); saveSessions(sessions); }
-      if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
-      if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true}, data.settings); saveSettings(settings); }
-      if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
-      if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
-      builderDraft=null; sheet=null; view='home'; toast('Données importées ✓'); render();
+      saveImportBackup(JSON.parse(JSON.stringify({sessions, customExos, settings, equipment, logs})));
+      applyData(data);
+      toast('Données importées ✓'); render();
     },
+    undoImport: ()=>{
+      if(!importBackup || !confirm("Revenir aux données d'avant l'import ? Ce que tu as modifié depuis sera perdu.")) return;
+      let data = null;
+      try{ data = cleanData(importBackup, false); }catch(e){}
+      saveImportBackup(null);
+      if(data){ applyData(data); toast('Import annulé ✓'); }
+      else toast("Copie d'avant l'import illisible : rien n'a été changé.");
+      render();
+    },
+    keepImport: ()=>{ saveImportBackup(null); render(); },
     closeSheet: ()=>{ sheet=null; render(); },
     newSession: ()=>{ builderDraft = newDraft(); view='builder'; render(); },
     cancelBuilder: ()=>{ builderDraft=null; view='home'; render(); },
