@@ -603,6 +603,33 @@ function vibrate(pattern){
   try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
 
+/* ---------------- WAKE LOCK ---------------- */
+// Keeps the screen on during a session: otherwise it goes to sleep during the
+// rests, the timer gets throttled and the beeps and vibrations are lost.
+let wakeLock = null, wakeLockPending = false;
+function requestWakeLock(){
+  if(wakeLock || wakeLockPending || !('wakeLock' in navigator) || document.visibilityState!=='visible') return;
+  wakeLockPending = true;
+  try{
+    navigator.wakeLock.request('screen').then(lock=>{
+      wakeLockPending = false;
+      // The session may have ended while the request was pending.
+      if(!player || player.phase==='review'){ lock.release().catch(()=>{}); return; }
+      wakeLock = lock;
+      lock.addEventListener('release', ()=>{ if(wakeLock===lock) wakeLock = null; });
+    }).catch(()=>{ wakeLockPending = false; });
+  }catch(e){ wakeLockPending = false; }
+}
+function releaseWakeLock(){
+  const lock = wakeLock;
+  wakeLock = null;
+  if(lock){ try{ lock.release().catch(()=>{}); }catch(e){} }
+}
+// The browser drops the lock whenever the page is hidden: take it back on return.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && player && player.phase!=='review') requestWakeLock();
+});
+
 /* ---------------- RENDER ROOT ---------------- */
 function render(){
   const app = document.getElementById('app');
@@ -642,7 +669,7 @@ function renderRecovery(app, err){
     <button class="btn danger block" style="margin-top:12px;" id="recoverReset">Réinitialiser l'app</button>
   </div>`;
   document.getElementById('recoverHome').onclick = ()=>{
-    if(player){ clearTick(); player = null; }
+    if(player){ clearTick(); releaseWakeLock(); player = null; }
     view = 'home'; sheet = null; builderDraft = null; render();
   };
   document.getElementById('recoverReset').onclick = ()=>{
@@ -1010,6 +1037,7 @@ function startSession(id){
   };
   view = 'player';
   render();
+  requestWakeLock();
 }
 
 function currentStep(){ return player.steps[player.stepIdx]; }
@@ -1125,6 +1153,7 @@ function goToNextStep(){
 
 function finishSession(){
   clearTick();
+  releaseWakeLock();
   player.phase='review';
   player.review = player.session.exos.map(e=>({completed:true, actualSets:e.sets, actualVal:e.val}));
   beep(660,150,0.15); setTimeout(()=>beep(880,150,0.15),160); setTimeout(()=>beep(1100,220,0.18),320);
@@ -1157,6 +1186,7 @@ function saveReview(){
 
 function exitPlayer(){
   clearTick();
+  releaseWakeLock();
   player=null;
   view='home';
   render();
