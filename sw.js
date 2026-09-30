@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calisthenie-maison-v2';
+const CACHE_NAME = 'calisthenie-maison-v3';
 const ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -21,8 +21,12 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        // Never cache an error page (404/5xx): it would be served offline
+        // instead of the last good copy.
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
         return response;
       })
       .catch(() => caches.match(event.request))
