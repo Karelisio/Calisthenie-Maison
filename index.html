@@ -444,7 +444,7 @@ function cleanExo(e){
 function cleanSession(s, strict){
   if(!isObj(s)) fail('format illisible');
   if(!Array.isArray(s.exos)) fail("liste d'exercices manquante");
-  if(strict && s.exos.length>100) fail('plus de 100 exercices');
+  if(strict && s.exos.length>200) fail('plus de 200 exercices');
   const exos = cleanList(s.exos, cleanExo, strict, 'exercice');
   if(!exos.length) fail('aucun exercice');
   const out = {id:cleanText(s.id, 100), name:cleanText(s.name, 200) || 'Séance sans nom'};
@@ -475,7 +475,7 @@ function cleanLogExo(e){
 function cleanLog(l, strict){
   if(!isObj(l)) fail('format illisible');
   if(!Array.isArray(l.exercises)) fail("liste d'exercices manquante");
-  if(strict && l.exercises.length>100) fail('plus de 100 exercices');
+  if(strict && l.exercises.length>200) fail('plus de 200 exercices');
   return {id:cleanText(l.id, 100), sessionName:cleanText(l.sessionName, 200) || 'Séance', dateISO:cleanText(l.dateISO, 40),
     exercises:cleanList(l.exercises, cleanLogExo, strict, 'exercice')};
 }
@@ -487,7 +487,8 @@ function cleanData(data, strict){
   const none = "ce texte ne contient pas de données de l'app";
   if(!isObj(data)) fail(none);
   const out = {};
-  [['sessions', cleanSessions, 200], ['customExos', cleanCustomExos, 500], ['logs', cleanLogs, 10000]].forEach(([k, clean, max])=>{
+  // Limits far above real use (the builder has none): they only stop absurd imports.
+  [['sessions', cleanSessions, 1000], ['customExos', cleanCustomExos, 1000], ['logs', cleanLogs, 20000]].forEach(([k, clean, max])=>{
     const v = data[k];
     if(v==null) return;
     if(!Array.isArray(v)){ if(strict) fail('« '+k+' » doit être une liste'); return; }
