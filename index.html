@@ -666,8 +666,13 @@ document.addEventListener('visibilitychange', ()=>{
 /* ---------------- RENDER ROOT ---------------- */
 function render(){
   const app = document.getElementById('app');
-  const prevFocus = focusKey(document.activeElement);
-  const sheetWasOpen = !!app.querySelector('.sheet');
+  let prevFocus = null, prevField = false, sheetWasOpen = false;
+  try{
+    sheetWasOpen = !!app.querySelector('.sheet');
+    const el = document.activeElement;
+    prevFocus = focusKey(el);
+    prevField = !!prevFocus && el.matches('input, textarea, select');
+  }catch(e){}
   try{
     let html = '';
     if(view === 'player' && player){
@@ -686,7 +691,7 @@ function render(){
     renderRecovery(app, err);
     return;
   }
-  restoreFocus(app, prevFocus, sheetWasOpen);
+  try{ restoreFocus(app, prevFocus, prevField, sheetWasOpen); }catch(e){}
 }
 
 // Every render replaces the whole DOM, which drops the keyboard focus. The
@@ -701,9 +706,11 @@ function focusKey(el){
   const attrs = Array.from(el.attributes).filter(a=>a.name.indexOf('data-')===0);
   return attrs.length ? el.tagName.toLowerCase()+attrs.map(a=>'['+a.name+'="'+CSS.escape(a.value)+'"]').join('') : null;
 }
-function restoreFocus(app, prevFocus, sheetWasOpen){
+function restoreFocus(app, prevFocus, prevField, sheetWasOpen){
   const sheetEl = app.querySelector('.sheet');
-  if(sheetEl && !sheetWasOpen) sheetOpener = prevFocus;
+  // Never a text field (iOS leaves the focus there when a button is tapped):
+  // focusing it again when the sheet closes would pop the keyboard up.
+  if(sheetEl && !sheetWasOpen) sheetOpener = prevField ? null : prevFocus;
   // A closed sheet gives the focus back to its opener; an open one keeps it inside.
   const key = !sheetEl && sheetWasOpen ? sheetOpener : prevFocus;
   if(!sheetEl) sheetOpener = null;
