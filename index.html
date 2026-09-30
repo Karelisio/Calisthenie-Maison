@@ -589,11 +589,33 @@ function toast(msg){
 }
 
 /* ---------------- AUDIO ---------------- */
+// iOS only lets an AudioContext play if it was created or resumed during a
+// tap: it is set up on « Démarrer » and resumed on any tap in the player
+// (iOS suspends it after an interruption), never first created by a timer.
 let actx = null;
+function resumeAudio(){ try{ const p = actx.resume(); if(p && p.catch) p.catch(()=>{}); }catch(e){} }
+function unlockAudio(){
+  if(!settings.sound) return;
+  try{
+    if(!actx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      actx = new AC();
+      // A silent sound played within the tap unlocks the output on older iOS.
+      const src = actx.createBufferSource();
+      src.buffer = actx.createBuffer(1, 1, 22050);
+      src.connect(actx.destination);
+      src.start(0);
+    }
+    if(actx.state!=='running') resumeAudio();
+  }catch(e){}
+}
+document.addEventListener('click', ()=>{ if(player) unlockAudio(); }, true);
 function beep(freq, dur, vol){
   if(!settings.sound) return;
   try{
     if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended') resumeAudio();
     const o = actx.createOscillator();
     const g = actx.createGain();
     o.type = 'sine';
@@ -1377,7 +1399,7 @@ function attachEvents(){
     render();
   });
 
-  app.querySelectorAll('[data-start-session]').forEach(b=>b.onclick = ()=>startSession(b.getAttribute('data-start-session')));
+  app.querySelectorAll('[data-start-session]').forEach(b=>b.onclick = ()=>{ unlockAudio(); startSession(b.getAttribute('data-start-session')); });
   app.querySelectorAll('[data-del-session]').forEach(b=>b.onclick = ()=>{
     const s = findSession(b.getAttribute('data-del-session'));
     if(s && confirm('Supprimer la séance "'+s.name+'" ?')){
