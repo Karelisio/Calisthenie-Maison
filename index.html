@@ -768,8 +768,20 @@ function renderHome(){
     </div>
   </div>` : '';
   const newBtn = undo + `<button class="btn primary block" data-action="newSession" style="margin-bottom:16px;">+ Nouvelle séance</button>`;
+  // Shown even without any session: Import/Export must stay reachable.
+  const settingsCard = `
+  <div class="card tight" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <span style="font-size:13px;color:var(--muted);">Réglages</span>
+    <div class="row wrap">
+      <button class="btn sm ${settings.sound?'accent':'ghost'}" data-toggle="sound">🔊 Son ${settings.sound?'ON':'OFF'}</button>
+      <button class="btn sm ${settings.vibrate?'accent':'ghost'}" data-toggle="vibrate">📳 Vibration ${settings.vibrate?'ON':'OFF'}</button>
+      <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
+      <button class="btn sm ghost" data-action="openExport">📤 Export</button>
+      <button class="btn sm ghost" data-action="openImport">📥 Import</button>
+    </div>
+  </div>`;
   if(sessions.length===0){
-    return newBtn + `<div class="empty"><div class="big">🧘</div><h3>Aucune séance</h3><p>Crée ta première séance avec le bouton ci-dessus.</p></div>`;
+    return newBtn + `<div class="empty"><div class="big">🧘</div><h3>Aucune séance</h3><p>Crée ta première séance avec le bouton ci-dessus.</p></div>` + settingsCard;
   }
   return newBtn + sessions.map(s=>{
     const totalSets = s.exos.reduce((a,e)=>a+e.sets,0);
@@ -798,17 +810,7 @@ function renderHome(){
       ${muscles.length ? `<p style="margin-top:8px;font-size:12px;">🎯 <b style="color:var(--text);font-weight:600;">Muscles travaillés :</b> ${muscles.map(m=>esc(m)).join(', ')}</p>` : ''}
       <button class="btn primary block" style="margin-top:12px;" data-start-session="${esc(s.id)}">▶ Démarrer</button>
     </div>`;
-  }).join('') + `
-  <div class="card tight" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-    <span style="font-size:13px;color:var(--muted);">Réglages</span>
-    <div class="row wrap">
-      <button class="btn sm ${settings.sound?'accent':'ghost'}" data-toggle="sound">🔊 Son ${settings.sound?'ON':'OFF'}</button>
-      <button class="btn sm ${settings.vibrate?'accent':'ghost'}" data-toggle="vibrate">📳 Vibration ${settings.vibrate?'ON':'OFF'}</button>
-      <button class="btn sm ghost" data-action="openEquipment">🎒 Équipement</button>
-      <button class="btn sm ghost" data-action="openExport">📤 Export</button>
-      <button class="btn sm ghost" data-action="openImport">📥 Import</button>
-    </div>
-  </div>`;
+  }).join('') + settingsCard;
 }
 
 /* ---------------- BUILDER ---------------- */
