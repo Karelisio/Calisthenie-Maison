@@ -388,6 +388,47 @@ function defaultSessions(){
   ];
 }
 
+/* ---------------- VALIDATION ---------------- */
+// Stored sessions are cleaned at load: an entry the app cannot display (a null
+// left by an old bug, a session without exercises...) is dropped instead of
+// breaking every render, numbers are bounded, and every session gets a unique
+// id (sessions are referenced by id, never by their position in the list).
+const MAX_SETS = 99, MAX_VAL = 9999, MAX_REST = 3600;
+function uid(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function isObj(v){ return !!v && typeof v==='object' && !Array.isArray(v); }
+function fail(msg){ throw new Error(msg); }
+function cleanText(v, max){ return (typeof v==='string' || typeof v==='number') ? String(v).trim().slice(0, max) : ''; }
+function cleanInt(v, def, min, max){
+  const n = typeof v==='number' ? v : (typeof v==='string' && v.trim()!=='' ? Number(v) : NaN);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : def;
+}
+function cleanIcon(v){ const s = typeof v==='string' ? v.trim() : ''; return s && s.length<=16 ? s : '⭐'; }
+function cleanList(arr, fn){
+  const out = [];
+  (Array.isArray(arr) ? arr : []).forEach(x=>{ try{ out.push(fn(x)); }catch(e){} });
+  return out;
+}
+function uniqueIds(list, prefix){
+  const seen = new Set();
+  list.forEach(x=>{ if(!x.id || seen.has(x.id)) x.id = uid(prefix); seen.add(x.id); });
+  return list;
+}
+function cleanExo(e){
+  if(!isObj(e)) fail('format illisible');
+  const name = cleanText(e.name, 200);
+  if(!name) fail('nom manquant');
+  const type = e.type==='time' ? 'time' : 'reps';
+  return {libId:cleanText(e.libId, 100), name, icon:cleanIcon(e.icon), type,
+    sets:cleanInt(e.sets, 3, 1, MAX_SETS), val:cleanInt(e.val, type==='time'?30:12, 1, MAX_VAL), rest:cleanInt(e.rest, 45, 0, MAX_REST)};
+}
+function cleanSession(s){
+  if(!isObj(s)) fail('format illisible');
+  if(!Array.isArray(s.exos)) fail("liste d'exercices manquante");
+  const exos = cleanList(s.exos, cleanExo);
+  if(!exos.length) fail('aucun exercice');
+  return {id:cleanText(s.id, 100), name:cleanText(s.name, 200) || 'Séance sans nom', exos};
+}
+
 /* ---------------- STORAGE ---------------- */
 const LS_SESSIONS = 'cal_sessions_v1';
 const LS_CUSTOM = 'cal_custom_exos_v1';
@@ -396,13 +437,16 @@ const LS_EQUIPMENT = 'cal_equipment_v1';
 const LS_LOGS = 'cal_logs_v1';
 
 function loadSessions(){
-  try{
-    const raw = localStorage.getItem(LS_SESSIONS);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  const d = defaultSessions();
-  saveSessions(d);
-  return d;
+  let raw = null, parsed = null;
+  try{ raw = localStorage.getItem(LS_SESSIONS); parsed = raw ? JSON.parse(raw) : null; }catch(e){}
+  if(!Array.isArray(parsed)){
+    const d = defaultSessions();
+    saveSessions(d);
+    return d;
+  }
+  const clean = uniqueIds(cleanList(parsed, cleanSession), 's_');
+  if(JSON.stringify(clean)!==raw) saveSessions(clean); // keep the repair
+  return clean;
 }
 function saveSessions(s){ try{ localStorage.setItem(LS_SESSIONS, JSON.stringify(s)); }catch(e){} }
 function loadCustomExos(){ try{ return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); }catch(e){ return []; } }
@@ -424,11 +468,13 @@ let settings = loadSettings();
 let equipment = loadEquipment();
 let logs = loadLogs();
 let view = 'home'; // home | builder | library | tracking | player
-let builderDraft = null; // session being built
+let builderDraft = null; // session being built (same id as the session it edits)
 let editingIndex = null; // index of exo being edited in a sheet
 let sheet = null; // {type:'addExo'|'editExo'|'tips'|'equipment', ...}
 let player = null; // player state
 
+function findSession(id){ return sessions.find(s=>s.id===id); }
+function isEditDraft(){ return !!builderDraft && !!findSession(builderDraft.id); }
 function allExoLibrary(){ return EXO_LIB.concat(customExos); }
 function hasEquipment(exo){ return !exo.equip || !!equipment[exo.equip]; }
 function availableExoLibrary(){ return allExoLibrary().filter(hasEquipment); }
@@ -516,12 +562,13 @@ function renderHome(){
   if(sessions.length===0){
     return newBtn + `<div class="empty"><div class="big">🧘</div><h3>Aucune séance</h3><p>Crée ta première séance avec le bouton ci-dessus.</p></div>`;
   }
-  return newBtn + sessions.map((s,i)=>{
+  return newBtn + sessions.map(s=>{
     const totalSets = s.exos.reduce((a,e)=>a+e.sets,0);
+    const lastRest = s.exos.length ? s.exos[s.exos.length-1].rest : 0;
     const estMin = Math.round(Math.max(0, s.exos.reduce((a,e)=>{
       const work = e.type==='time' ? e.val : e.val*2.5; // estimate ~2.5s per rep
       return a + e.sets*(work+e.rest);
-    },0) - s.exos[s.exos.length-1].rest)/60);
+    },0) - lastRest)/60);
     const muscles = getSessionMuscles(s);
     return `
     <div class="card">
@@ -531,8 +578,8 @@ function renderHome(){
           <p>${s.exos.length} exercices · ${totalSets} séries · ~${estMin} min</p>
         </div>
         <div class="row">
-          <button class="icon-btn" data-edit-session="${i}" title="Modifier">✏️</button>
-          <button class="icon-btn" data-del-session="${i}" title="Supprimer">🗑️</button>
+          <button class="icon-btn" data-edit-session="${escapeAttr(s.id)}" title="Modifier">✏️</button>
+          <button class="icon-btn" data-del-session="${escapeAttr(s.id)}" title="Supprimer">🗑️</button>
         </div>
       </div>
       <div class="row wrap" style="margin-top:10px;">
@@ -540,7 +587,7 @@ function renderHome(){
         ${s.exos.length>5?`<span class="pill">+${s.exos.length-5}</span>`:''}
       </div>
       ${muscles.length ? `<p style="margin-top:8px;font-size:12px;">🎯 <b style="color:var(--text);font-weight:600;">Muscles travaillés :</b> ${muscles.map(m=>escapeHtml(m)).join(', ')}</p>` : ''}
-      <button class="btn primary block" style="margin-top:12px;" data-start-session="${i}">▶ Démarrer</button>
+      <button class="btn primary block" style="margin-top:12px;" data-start-session="${escapeAttr(s.id)}">▶ Démarrer</button>
     </div>`;
   }).join('') + `
   <div class="card tight" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -557,7 +604,7 @@ function renderHome(){
 
 /* ---------------- BUILDER ---------------- */
 function newDraft(){
-  return {id:'s_'+Date.now(), name:'Nouvelle séance', exos:[]};
+  return {id:uid('s_'), name:'Nouvelle séance', exos:[]};
 }
 function renderBuilder(){
   if(!builderDraft) builderDraft = newDraft();
@@ -821,8 +868,10 @@ function flattenSteps(session){
   return steps;
 }
 
-function startSession(idx){
-  const session = JSON.parse(JSON.stringify(sessions[idx]));
+function startSession(id){
+  const found = findSession(id);
+  if(!found){ render(); return; }
+  const session = JSON.parse(JSON.stringify(found));
   const steps = flattenSteps(session);
   if(steps.length===0){ toast('Cette séance est vide.'); return; }
   player = {
@@ -1117,7 +1166,11 @@ function attachEvents(){
   const app = document.getElementById('app');
 
   app.querySelectorAll('[data-nav]').forEach(b=>b.onclick = ()=>{
-    view = b.getAttribute('data-nav');
+    const to = b.getAttribute('data-nav');
+    // « Créer » must never resume the edit of an existing session: leaving the
+    // builder through the tabs drops it (a new session in progress is kept).
+    if(view==='builder' && to!=='builder' && isEditDraft()) builderDraft = null;
+    view = to;
     if(view==='builder' && !builderDraft) builderDraft = newDraft();
     render();
   });
@@ -1129,17 +1182,18 @@ function attachEvents(){
     render();
   });
 
-  app.querySelectorAll('[data-start-session]').forEach(b=>b.onclick = ()=>startSession(parseInt(b.getAttribute('data-start-session'))));
+  app.querySelectorAll('[data-start-session]').forEach(b=>b.onclick = ()=>startSession(b.getAttribute('data-start-session')));
   app.querySelectorAll('[data-del-session]').forEach(b=>b.onclick = ()=>{
-    const i = parseInt(b.getAttribute('data-del-session'));
-    if(confirm('Supprimer la séance "'+sessions[i].name+'" ?')){
-      sessions.splice(i,1); saveSessions(sessions); render();
+    const s = findSession(b.getAttribute('data-del-session'));
+    if(s && confirm('Supprimer la séance "'+s.name+'" ?')){
+      if(builderDraft && builderDraft.id===s.id) builderDraft = null;
+      sessions = sessions.filter(x=>x!==s); saveSessions(sessions); render();
     }
   });
   app.querySelectorAll('[data-edit-session]').forEach(b=>b.onclick = ()=>{
-    const i = parseInt(b.getAttribute('data-edit-session'));
-    builderDraft = JSON.parse(JSON.stringify(sessions[i]));
-    builderDraft._editIndex = i;
+    const s = findSession(b.getAttribute('data-edit-session'));
+    if(!s) return;
+    builderDraft = JSON.parse(JSON.stringify(s));
     view='builder'; render();
   });
 
@@ -1152,9 +1206,9 @@ function attachEvents(){
     const i = parseInt(b.getAttribute('data-i'));
     const d = parseInt(b.getAttribute('data-d'));
     const e = builderDraft.exos[i];
-    if(field==='sets') e.sets = Math.max(1, e.sets+d);
-    if(field==='val') e.val = Math.max(e.type==='time'?5:1, e.val+d);
-    if(field==='rest') e.rest = Math.max(0, e.rest+d);
+    if(field==='sets') e.sets = Math.min(MAX_SETS, Math.max(1, e.sets+d));
+    if(field==='val') e.val = Math.min(MAX_VAL, Math.max(e.type==='time'?5:1, e.val+d));
+    if(field==='rest') e.rest = Math.min(MAX_REST, Math.max(0, e.rest+d));
     render();
   });
   app.querySelectorAll('[data-remove-exo]').forEach(b=>b.onclick = ()=>{
@@ -1186,24 +1240,21 @@ function attachEvents(){
       try{ data = JSON.parse(raw); }catch(e){ toast('Texte invalide : vérifie que tu as bien tout copié.'); return; }
       if(!data || typeof data!=='object'){ toast('Format invalide.'); return; }
       if(!confirm('Importer ces données ? Cela remplacera tes séances, exercices, équipement et suivi actuels.')) return;
-      if(Array.isArray(data.sessions)){ sessions = data.sessions; saveSessions(sessions); }
+      if(Array.isArray(data.sessions)){ sessions = uniqueIds(cleanList(data.sessions, cleanSession), 's_'); saveSessions(sessions); }
       if(Array.isArray(data.customExos)){ customExos = data.customExos; saveCustomExos(customExos); }
       if(data.settings && typeof data.settings==='object'){ settings = Object.assign({sound:true,vibrate:true}, data.settings); saveSettings(settings); }
       if(data.equipment && typeof data.equipment==='object'){ equipment = Object.assign({pullupBar:false,dipBar:false,chair:false,bench:false,bands:false}, data.equipment); saveEquipment(equipment); }
       if(Array.isArray(data.logs)){ logs = data.logs; saveLogs(logs); }
-      sheet=null; view='home'; toast('Données importées ✓'); render();
+      builderDraft=null; sheet=null; view='home'; toast('Données importées ✓'); render();
     },
     closeSheet: ()=>{ sheet=null; render(); },
     newSession: ()=>{ builderDraft = newDraft(); view='builder'; render(); },
     cancelBuilder: ()=>{ builderDraft=null; view='home'; render(); },
     saveSession: ()=>{
       if(!builderDraft.name.trim()) builderDraft.name='Séance sans nom';
-      if(builderDraft._editIndex!=null){
-        sessions[builderDraft._editIndex] = builderDraft;
-        delete sessions[builderDraft._editIndex]._editIndex;
-      } else {
-        sessions.push(builderDraft);
-      }
+      // Matched by id: the list may have changed since the edit began.
+      const i = sessions.findIndex(s=>s.id===builderDraft.id);
+      if(i>=0) sessions[i] = builderDraft; else sessions.push(builderDraft);
       saveSessions(sessions);
       builderDraft=null; view='home'; toast('Séance enregistrée ✓'); render();
     },
