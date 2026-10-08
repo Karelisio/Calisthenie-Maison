@@ -828,10 +828,29 @@ const SIDE_SWITCH_SEC = 5;
 function toFlexExo(entry, meta, rest){
   return {libId:null, srcId:entry.id, meta, name:entry.name, icon:entry.icon, type:'time', sets:1, val:entry.val, rest, sides:!!entry.sides};
 }
+function flexKindOf(libExo){
+  if(!libExo) return null;
+  if(WARMUP_LIB.includes(libExo)) return 'warmup';
+  if(STRETCH_LIB.includes(libExo)) return 'stretch';
+  return null;
+}
+/* L'échauffement et les étirements n'ont qu'une durée de référence : quand on
+   les ajoute soi-même à une séance, il leur faut des séries et un repos. */
+const FLEX_SESSION_DEFAULTS = { warmup:{sets:3, rest:30}, stretch:{sets:1, rest:FLEX_REST.stretch} };
+const FLEX_DEFAULT_REPS = 10;
+function toSessionExo(e){
+  const kind = flexKindOf(e);
+  if(!kind) return {libId:e.id, name:e.name, icon:e.icon, type:e.type, sets:e.sets, val:e.val, rest:e.rest, sides:!!e.sides};
+  const d = FLEX_SESSION_DEFAULTS[kind];
+  return {libId:e.id, name:e.name, icon:e.icon, type:'time', sets:d.sets, val:e.val, rest:d.rest, sides:!!e.sides};
+}
+// Ce que la séance contient déjà n'est pas reproposé par l'échauffement/étirement auto.
+function sessionLibIds(session){ return new Set(session.exos.map(e=>e.libId)); }
 function buildWarmupExos(session){
   const plan = FLEX_PLAN[settings.warmupMode==='long' ? 'long' : 'short'];
   const weights = getSessionMuscleWeights(session);
-  const byCat = cat => WARMUP_LIB.filter(w=>w.cat===cat);
+  const used = sessionLibIds(session);
+  const byCat = cat => WARMUP_LIB.filter(w=>w.cat===cat && !used.has(w.id));
   const picked = [
     ...pickFlexItems(byCat('raise'), weights, plan.raise),
     ...pickFlexItems([...byCat('mobilise'), ...byCat('activate')], weights, plan.mobilise),
@@ -842,7 +861,8 @@ function buildWarmupExos(session){
 function buildStretchExos(session){
   const plan = FLEX_PLAN[settings.warmupMode==='long' ? 'long' : 'short'];
   const weights = getSessionMuscleWeights(session);
-  return pickFlexItems(STRETCH_LIB, weights, plan.stretches).map(s=>toFlexExo(s, 'stretch', FLEX_REST.stretch));
+  const used = sessionLibIds(session);
+  return pickFlexItems(STRETCH_LIB.filter(s=>!used.has(s.id)), weights, plan.stretches).map(s=>toFlexExo(s, 'stretch', FLEX_REST.stretch));
 }
 
 /* Muscles proposés lors de la création d'un exercice personnalisé — mêmes
@@ -942,6 +962,7 @@ let builderDraft = null; // session being built
 let libTab = 'exos'; // warmup | exos | stretch
 let libSearch = '';   // filtre de l'onglet Exercices
 let pickSearch = '';  // filtre de la fiche "Choisir un exercice"
+let pickTab = 'exos'; // onglet de cette fiche, gardé d'une ouverture à l'autre pour enchaîner les ajouts
 let sheet = null; // {type:'addExo'|'editExo'|'tips'|'equipment', ...}
 let sheetOpenedAt = 0; // pour ignorer le clic fantôme qui ferme un sheet dès son ouverture
 let lastSheetSeen = null;
@@ -1032,11 +1053,17 @@ function watchDownload(){
 const UPDATE_RELEASE_PAGE_URL = 'https://github.com/Karelisio/Calisthenie-Maison/releases/tag/apk-material-latest';
 /* Affiché dans les réglages : permet de savoir en un coup d'œil quelle
    version est réellement installée (à incrémenter à chaque publication). */
-const APP_BUILD = '19';
+const APP_BUILD = '20';
 /* Journal des nouveautés, du plus récent au plus ancien. À compléter à chaque
    fois qu'on incrémente APP_BUILD : c'est ce que l'app affiche toute seule au
    premier lancement après une mise à jour. */
 const CHANGELOG = [
+  {v:'20', title:'Échauffement et étirements dans tes séances', items:[
+    "Dans « Créer », le choix des exercices a maintenant les mêmes onglets que la bibliothèque : 💪 Exercices, 🔥 Échauffement et 🧘 Étirements. Tu peux donc mettre le Dead bug, le Bird-dog ou n'importe quel étirement dans une séance.",
+    "La recherche y cherche dans les trois onglets à la fois.",
+    "Pour un exercice venu de l'échauffement, tu choisis ⏱ Durée ou 🔁 Reps directement dans la séance.",
+    "L'échauffement et les étirements automatiques ne te reproposent plus un exercice que tu as déjà mis dans ta séance."
+  ]},
   {v:'19', title:'Vrai changement de côté & conseils mieux placés', items:[
     "Pour les exercices en répétitions où on travaille un côté à la fois (Pistol Squat, Step up, Kick Back debout…), une pause « Changez de côté » s'impose désormais entre les deux moitiés de la série, comme pour les exercices chronométrés.",
     "Le bouton « Conseils & sécurité » montre les conseils du prochain exercice pendant le repos, pour t'y préparer — il reste sur l'exercice en cours pendant l'effort.",
@@ -1068,11 +1095,6 @@ const CHANGELOG = [
   {v:'13', title:'Ce journal', items:[
     "Après chaque mise à jour, l'app affiche d'elle-même ce qui a changé.",
     "Tu peux le rouvrir quand tu veux : bouton « ✨ Nouveautés » dans les réglages."
-  ]},
-  {v:'12', title:'Suivi série par série', items:[
-    "Le bilan de fin de séance retient chaque série séparément (20 / 15 / 10) au lieu d'un seul chiffre pour l'ensemble.",
-    "« Comme prévu » reste un seul appui : le détail ne s'ouvre que si tu le demandes.",
-    "Les séances déjà enregistrées restent lisibles telles quelles."
   ]},
 ];
 
@@ -1196,7 +1218,6 @@ function sessionSeconds(session){
 
 function allExoLibrary(){ return EXO_LIB.concat(customExos); }
 function hasEquipment(exo){ return !exo.equip || !!equipment[exo.equip]; }
-function availableExoLibrary(){ return allExoLibrary().filter(e=>hasEquipment(e) && !isLungeBlocked(e)); }
 
 /* Index id -> entrée, reconstruit uniquement quand les exercices perso changent.
    Couvre aussi l'échauffement et les étirements pour que leurs fiches conseils
@@ -1482,6 +1503,8 @@ function renderBuilder(){
 function renderBuilderExo(e,i,count){
   const libExo = getExoById(e.libId);
   const equipNote = (libExo && libExo.equip) ? ` · 🎒 ${EQUIPMENT_LABELS[libExo.equip]}` : '';
+  const kind = flexKindOf(libExo);
+  const originNote = kind==='warmup' ? ' · 🔥 Échauffement' : (kind==='stretch' ? ' · 🧘 Étirement' : '');
   return `
   <div class="exo-item" style="flex-direction:column;align-items:stretch;">
     <div class="row between wrap">
@@ -1489,7 +1512,7 @@ function renderBuilderExo(e,i,count){
         <div class="emoji">${e.icon}</div>
         <div class="meta">
           <b>${escapeHtml(e.name)}</b>
-          <small>${e.type==='time' ? 'Basé sur le temps' : 'Basé sur les répétitions'}${equipNote}</small>
+          <small>${e.type==='time' ? 'Basé sur le temps' : 'Basé sur les répétitions'}${originNote}${equipNote}</small>
         </div>
       </div>
       <div class="row wrap" style="gap:6px;justify-content:flex-end;">
@@ -1499,6 +1522,11 @@ function renderBuilderExo(e,i,count){
         <button class="icon-btn" data-remove-exo="${i}" title="Retirer" aria-label="Retirer cet exercice">✕</button>
       </div>
     </div>
+    ${kind==='warmup' ? `
+    <div class="row wrap" style="gap:6px;margin-top:10px;">
+      <button type="button" class="btn sm ${e.type==='time'?'accent':'ghost'}" data-set-exo-type="time" data-i="${i}">⏱ Durée</button>
+      <button type="button" class="btn sm ${e.type==='reps'?'accent':'ghost'}" data-set-exo-type="reps" data-i="${i}">🔁 Reps</button>
+    </div>` : ''}
     <div class="row wrap" style="gap:18px;margin-top:12px;">
       <div class="stepper-col">
         <span class="stepper-label">Séries</span>
@@ -1578,12 +1606,12 @@ function renderLibrary(){
 
   if(libTab==='warmup'){
     const list = filter(WARMUP_LIB);
-    return tabs + search + `<p style="margin:0 0 12px;">Mouvements dynamiques à faire avant l'effort. L'app en sélectionne automatiquement selon les muscles de ta séance — tu peux aussi les consulter ici.</p>`
+    return tabs + search + `<p style="margin:0 0 12px;">Mouvements dynamiques à faire avant l'effort. L'app en sélectionne automatiquement selon les muscles de ta séance — tu peux aussi les consulter ici, ou les ajouter à une séance depuis « Créer ».</p>`
       + (list.length ? renderLibSection(list, WARMUP_CATS, e=>`${e.val}s · dynamique`) : renderNoMatch(libSearch));
   }
   if(libTab==='stretch'){
     const list = filter(STRETCH_LIB);
-    return tabs + search + `<p style="margin:0 0 12px;">Étirements statiques de fin de séance : garde chaque position sans à-coups, jusqu'à la sensation d'étirement, jamais à la douleur.</p>`
+    return tabs + search + `<p style="margin:0 0 12px;">Étirements statiques de fin de séance : garde chaque position sans à-coups, jusqu'à la sensation d'étirement, jamais à la douleur. Tu peux aussi les ajouter à une séance depuis « Créer ».</p>`
       + (list.length ? renderLibSection(list, STRETCH_CATS, e=>`${e.val}s de maintien`) : renderNoMatch(libSearch));
   }
   const list = filter(allExoLibrary());
@@ -1653,29 +1681,50 @@ function renderTracking(){
 }
 
 /* ---------------- ADD/EDIT EXO SHEET ---------------- */
+/* Mêmes onglets que la bibliothèque : un mouvement d'échauffement ou un
+   étirement peut aussi faire partie d'une séance. */
+const PICK_SOURCES = {
+  warmup:  { list: ()=>WARMUP_LIB,      cats: WARMUP_CATS },
+  exos:    { list: ()=>allExoLibrary(), cats: null },
+  stretch: { list: ()=>STRETCH_LIB,     cats: STRETCH_CATS },
+};
 function renderSheet(){
   if(!sheet) return '';
   if(sheet.type==='addExo'){
-    const matching = availableExoLibrary().filter(e=>matchesSearch(e, pickSearch));
-    const cats = {};
-    matching.forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
-    const equipLockedCount = allExoLibrary().filter(e=>!hasEquipment(e)).length;
-    const lungeLockedCount = allExoLibrary().filter(isLungeBlocked).length;
-    let items = '';
-    Object.keys(cats).forEach(cat=>{
-      items += `<div class="cat-title">${escapeHtml(cat)}</div>`;
-      cats[cat].forEach(e=>{
-        const muscles = (e.muscles&&e.muscles.length) ? ` · 🎯 ${escapeHtml(e.muscles.slice(0,3).join(' · '))}` : '';
-        items += `<div class="lib-item" data-pick-exo="${e.id}">
-          <span class="emoji">${e.icon}</span>
-          <div><b>${escapeHtml(e.name)}</b><small>${e.type==='time'?e.val+'s':e.val+' reps'} · ${e.sets} séries${muscles}</small></div>
-        </div>`;
+    const searching = !!pickSearch.trim();
+    // Une recherche porte sur les trois onglets à la fois.
+    const keys = searching ? Object.keys(LIB_TABS) : [pickTab];
+    let items = '', equipLockedCount = 0, lungeLockedCount = 0;
+    keys.forEach(k=>{
+      const src = PICK_SOURCES[k];
+      const all = src.list();
+      equipLockedCount += all.filter(e=>!hasEquipment(e)).length;
+      lungeLockedCount += all.filter(isLungeBlocked).length;
+      const cats = {};
+      all.filter(e=>hasEquipment(e) && !isLungeBlocked(e) && matchesSearch(e, pickSearch))
+        .forEach(e=>{ (cats[e.cat]=cats[e.cat]||[]).push(e); });
+      Object.keys(cats).forEach(cat=>{
+        const label = src.cats ? src.cats[cat] : cat;
+        items += `<div class="cat-title">${escapeHtml(searching ? LIB_TABS[k]+' · '+label : label)}</div>`;
+        cats[cat].forEach(e=>{
+          const d = toSessionExo(e);
+          const muscles = (e.muscles&&e.muscles.length) ? ` · 🎯 ${escapeHtml(e.muscles.slice(0,3).join(' · '))}` : '';
+          items += `<div class="lib-item" data-pick-exo="${e.id}">
+            <span class="emoji">${e.icon}</span>
+            <div><b>${escapeHtml(e.name)}</b><small>${d.type==='time'?d.val+'s':d.val+' reps'} · ${d.sets} série${d.sets>1?'s':''}${muscles}</small></div>
+          </div>`;
+        });
       });
     });
-    if(!matching.length) items = renderNoMatch(pickSearch);
+    if(!items) items = renderNoMatch(pickSearch);
+    // Sous le champ de recherche, pour que celui-ci ne bouge pas quand les onglets disparaissent à la frappe.
+    const tabs = searching ? '' : `<nav class="tabs" style="margin:0;">${
+      Object.keys(LIB_TABS).map(k=>`<button data-picktab="${k}" class="${pickTab===k?'active':''}">${LIB_TABS[k]}</button>`).join('')
+    }</nav>`;
     return `<div class="overlay" data-close-sheet="1"><div class="sheet" onclick="event.stopPropagation()">
       <h3>Choisir un exercice</h3>
       ${renderSearchField('pickSearch', pickSearch, 'Rechercher un exercice ou un muscle…')}
+      ${tabs}
       ${items}
       ${equipLockedCount>0? `<p style="margin:12px 2px 0;">🔒 ${equipLockedCount} exercice${equipLockedCount>1?'s':''} nécessitant du matériel non activé. <button class="tips-btn" data-action="openEquipment" style="margin:8px 0 0;">🎒 Gérer mon équipement</button></p>` : ''}
       ${lungeLockedCount>0? `<p style="margin:12px 2px 0;">🦵 ${lungeLockedCount} exercice${lungeLockedCount>1?'s':''} en fente désactivé${lungeLockedCount>1?'s':''} (option "Éviter les fentes").</p>` : ''}
@@ -2449,6 +2498,10 @@ function attachEvents(){
     libTab = b.getAttribute('data-libtab');
     render();
   });
+  app.querySelectorAll('[data-picktab]').forEach(b=>b.onclick = ()=>{
+    pickTab = b.getAttribute('data-picktab');
+    render();
+  });
 
   app.querySelectorAll('[data-toggle]').forEach(b=>b.onclick = ()=>{
     const k = b.getAttribute('data-toggle');
@@ -2558,6 +2611,15 @@ function attachEvents(){
   app.querySelectorAll('[data-remove-exo]').forEach(b=>b.onclick = ()=>{
     const i = parseInt(b.getAttribute('data-remove-exo'));
     builderDraft.exos.splice(i,1); render();
+  });
+  app.querySelectorAll('[data-set-exo-type]').forEach(b=>b.onclick = ()=>{
+    const e = builderDraft.exos[parseInt(b.getAttribute('data-i'))];
+    const type = b.getAttribute('data-set-exo-type');
+    if(e.type === type) return;
+    const libExo = getExoById(e.libId);
+    e.type = type;
+    e.val = type==='time' ? libExo.val : FLEX_DEFAULT_REPS;
+    render();
   });
 
   const actionMap = {
@@ -2788,8 +2850,7 @@ function attachEvents(){
 
   app.querySelectorAll('[data-pick-exo]').forEach(b=>b.onclick = ()=>{
     const id = b.getAttribute('data-pick-exo');
-    const e = allExoLibrary().find(x=>x.id===id);
-    builderDraft.exos.push({libId:e.id, name:e.name, icon:e.icon, type:e.type, sets:e.sets, val:e.val, rest:e.rest, sides:!!e.sides});
+    builderDraft.exos.push(toSessionExo(getExoById(id)));
     sheet=null; render();
   });
   app.querySelectorAll('[data-del-custom]').forEach(b=>b.onclick = (ev)=>{
